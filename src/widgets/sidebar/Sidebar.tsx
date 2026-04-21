@@ -1,9 +1,8 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Plus,
   Settings,
   HelpCircle,
   Bell,
@@ -14,17 +13,18 @@ import {
   LayoutDashboard,
   Receipt,
   ClipboardList,
-  CreditCard,
   MessageSquare,
   CheckCircle2,
   AlertTriangle,
+  Building2,
+  UsersRound,
+  Wallet,
   X,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 
 export function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolean, onToggle: () => void }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const [hasUnread, setHasUnread] = React.useState(true);
 
@@ -62,23 +62,8 @@ export function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolean, onTog
         </button>
       </div>
 
-      {/* New Survey Button */}
-      <div className={cn("mb-4 mt-2", isCollapsed ? "px-3" : "px-4")}>
-        <button
-          onClick={() => navigate('/surveys/new')}
-          title={isCollapsed ? t('New survey') : undefined}
-          className={cn(
-            "flex items-center justify-center gap-2 bg-[#FF3C21] text-white rounded-md text-sm font-medium hover:bg-[#E63419] transition-colors cursor-pointer",
-            isCollapsed ? "w-10 h-10 mx-auto p-2" : "w-full px-4 py-2"
-          )}
-        >
-          <Plus className="w-4 h-4 shrink-0" />
-          {!isCollapsed && <span className="whitespace-nowrap">{t('New survey')}</span>}
-        </button>
-      </div>
-
       {/* Navigation Links */}
-      <div className={cn("flex-1 overflow-y-auto px-3 py-2 overflow-x-hidden", isCollapsed ? "space-y-3" : "space-y-6")}>
+      <div className={cn("flex-1 overflow-y-auto px-3 py-4 overflow-x-hidden", isCollapsed ? "space-y-3" : "space-y-6")}>
 
         {/* Overview */}
         <div>
@@ -95,17 +80,47 @@ export function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolean, onTog
 
         {isCollapsed && <div className="border-t border-[#E4E4E7] mx-2" />}
 
-        {/* Workspace */}
+        {/* Users */}
         <div>
           <div className={cn(
             "mb-2 text-[11px] font-semibold text-[#71717A] uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
             isCollapsed ? "opacity-0 h-0 overflow-hidden text-center" : "px-3 opacity-100 h-auto"
           )}>
-            {t("WORKSPACE")}
+            {t("USERS")}
+          </div>
+          <div className="space-y-0.5">
+            <NavItem icon={Building2} label={t("Companies")} path="/companies" isCollapsed={isCollapsed} />
+            <NavItem icon={UsersRound} label={t("Respondents")} path="/respondents" isCollapsed={isCollapsed} />
+          </div>
+        </div>
+
+        {isCollapsed && <div className="border-t border-[#E4E4E7] mx-2" />}
+
+        {/* Content */}
+        <div>
+          <div className={cn(
+            "mb-2 text-[11px] font-semibold text-[#71717A] uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            isCollapsed ? "opacity-0 h-0 overflow-hidden text-center" : "px-3 opacity-100 h-auto"
+          )}>
+            {t("CONTENT")}
           </div>
           <div className="space-y-0.5">
             <NavItem icon={ClipboardList} label={t("Surveys")} path="/surveys" isCollapsed={isCollapsed} />
-            <NavItem icon={CreditCard} label={t("Billing & Credits")} path="/billing" isCollapsed={isCollapsed} />
+          </div>
+        </div>
+
+        {isCollapsed && <div className="border-t border-[#E4E4E7] mx-2" />}
+
+        {/* Payments */}
+        <div>
+          <div className={cn(
+            "mb-2 text-[11px] font-semibold text-[#71717A] uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            isCollapsed ? "opacity-0 h-0 overflow-hidden text-center" : "px-3 opacity-100 h-auto"
+          )}>
+            {t("PAYMENTS")}
+          </div>
+          <div className="space-y-0.5">
+            <NavItem icon={Wallet} label={t("Payouts")} path="/payouts" isCollapsed={isCollapsed} />
           </div>
         </div>
 

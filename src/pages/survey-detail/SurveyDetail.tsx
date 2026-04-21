@@ -4,10 +4,10 @@ import { useNavigate, useParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import {
-  Pencil,
   Pause,
   Play,
-  Trash2,
+  XCircle,
+  RotateCcw,
   Users,
   CheckCircle2,
   BarChart3,
@@ -25,9 +25,11 @@ import {
   ArrowUpRight,
   Info,
   LayoutDashboard,
+  Building2,
+  Ban,
+  ShieldCheck,
 } from 'lucide-react';
 import { BrandSelect } from '@/shared/ui/brand-select';
-import { mockQuestionsFor } from '@/shared/lib/mock-questions';
 import { findSurveyById, DEMO_SURVEYS, type Survey as SurveyRecord } from '@/pages/surveys/survey-data';
 
 type QualityTier = 'High' | 'Medium' | 'Low';
@@ -304,7 +306,7 @@ function rewardStatusDisplay(s: RewardStatus) {
   }
 }
 
-type DetailStatus = 'Active' | 'Paused';
+type DetailStatus = 'Active' | 'Paused' | 'Rejected';
 
 interface SurveyDetailData {
   id: string;
@@ -326,12 +328,16 @@ interface SurveyDetailData {
   endsLabel: string;
   endDate: string;
   description: string;
+  companyId: string;
+  companyName: string;
 }
 
 function buildInitialSurvey(id: string | undefined): SurveyDetailData {
   const source: SurveyRecord = findSurveyById(id) ?? DEMO_SURVEYS[0];
-  // The detail page only toggles between Active and Paused; treat other lifecycle states as Active for the button
-  const status: DetailStatus = source.status === 'Paused' ? 'Paused' : 'Active';
+  const status: DetailStatus =
+    source.status === 'Paused' ? 'Paused'
+    : source.status === 'Rejected' ? 'Rejected'
+    : 'Active';
   return {
     id: source.id,
     title: source.title,
@@ -352,6 +358,8 @@ function buildInitialSurvey(id: string | undefined): SurveyDetailData {
     endsLabel: source.endsLabel,
     endDate: source.endDate,
     description: source.description,
+    companyId: source.companyId,
+    companyName: source.companyName,
   };
 }
 
@@ -453,39 +461,27 @@ export default function SurveyDetail() {
   const pct = Math.round((survey.responsesCurrent / survey.responsesTarget) * 100);
   const spotsRemaining = survey.responsesTarget - survey.responsesCurrent;
   const isActive = survey.status === 'Active';
+  const isRejected = survey.status === 'Rejected';
 
   const togglePause = () => {
     setSurvey((s) => ({ ...s, status: s.status === 'Active' ? 'Paused' : 'Active' }));
   };
 
-  const handleEdit = () => {
-    navigate('/surveys/new', {
-      state: {
-        prefill: {
-          title: survey.title,
-          description: survey.description,
-          category: survey.category,
-          reward: survey.rewardPerResponse,
-          maxResponses: survey.responsesTarget,
-          estMinutes: survey.estMinutes,
-          trustLevel: survey.trustLevel,
-          endDate: survey.endDate,
-          anonymous: survey.anonymous,
-          questions: mockQuestionsFor(survey.category),
-        },
-      },
-    });
+  const handleReject = () => {
+    setSurvey((s) => ({ ...s, status: 'Rejected' }));
+    setIsDeleteOpen(false);
   };
 
-  const handleDelete = () => {
-    setIsDeleteOpen(false);
-    navigate('/surveys');
+  const handleReinstate = () => {
+    setSurvey((s) => ({ ...s, status: 'Active' }));
   };
 
   const statusBadge =
     survey.status === 'Active'
       ? 'bg-[#ECFDF5] text-[#047857] border border-[#D1FAE5]'
-      : 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]';
+      : survey.status === 'Paused'
+        ? 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'
+        : 'bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA]';
 
   return (
     <motion.div
@@ -516,7 +512,20 @@ export default function SurveyDetail() {
             </span>
           </div>
           <p className="text-sm text-[#71717A] flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => navigate(`/companies/${survey.companyId.toLowerCase()}`)}
+              className="inline-flex items-center gap-1 font-medium text-[#0A0A0A] hover:text-[#FF3C21] transition-colors cursor-pointer"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              {survey.companyName}
+            </button>
+            <span className="text-[#D4D4D8]">·</span>
             <span>{t(survey.category)}</span>
+            <span className="text-[#D4D4D8]">·</span>
+            <span className="inline-flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#71717A]" />
+              {t('Level')} {survey.trustLevel}+
+            </span>
             <span className="text-[#D4D4D8]">·</span>
             <span>{survey.questionCount} {t('Questions')}</span>
             <span className="text-[#D4D4D8]">·</span>
@@ -528,37 +537,42 @@ export default function SurveyDetail() {
         </div>
 
         <div className="flex gap-2">
-          <button
-            onClick={handleEdit}
-            className="flex items-center gap-2 px-4 py-2 border border-[#E4E4E7] rounded-md text-sm font-medium text-[#0A0A0A] hover:bg-[#F4F4F5] transition-colors bg-white shadow-none cursor-pointer"
-          >
-            <Pencil className="w-4 h-4" />
-            {t('Edit')}
-          </button>
-          {isActive ? (
+          {isRejected ? (
             <button
-              onClick={togglePause}
-              className="flex items-center gap-2 px-4 py-2 border border-[#FDE68A] rounded-md text-sm font-medium text-[#B45309] bg-[#FFFBEB] hover:bg-[#FFE8CC] transition-colors shadow-none cursor-pointer"
+              onClick={handleReinstate}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#059669] rounded-md hover:bg-[#047857] transition-colors shadow-none cursor-pointer"
             >
-              <Pause className="w-4 h-4" />
-              {t('Pause')}
+              <RotateCcw className="w-4 h-4" />
+              {t('Reinstate')}
             </button>
           ) : (
-            <button
-              onClick={togglePause}
-              className="flex items-center gap-2 px-4 py-2 border border-[#D1FAE5] rounded-md text-sm font-medium text-[#047857] bg-[#ECFDF5] hover:bg-[#D5E8D2] transition-colors shadow-none cursor-pointer"
-            >
-              <Play className="w-4 h-4" />
-              {t('Resume')}
-            </button>
+            <>
+              {isActive ? (
+                <button
+                  onClick={togglePause}
+                  className="flex items-center gap-2 px-4 py-2 border border-[#FDE68A] rounded-md text-sm font-medium text-[#B45309] bg-[#FFFBEB] hover:bg-[#FFE8CC] transition-colors shadow-none cursor-pointer"
+                >
+                  <Pause className="w-4 h-4" />
+                  {t('Pause')}
+                </button>
+              ) : (
+                <button
+                  onClick={togglePause}
+                  className="flex items-center gap-2 px-4 py-2 border border-[#D1FAE5] rounded-md text-sm font-medium text-[#047857] bg-[#ECFDF5] hover:bg-[#D5E8D2] transition-colors shadow-none cursor-pointer"
+                >
+                  <Play className="w-4 h-4" />
+                  {t('Resume')}
+                </button>
+              )}
+              <button
+                onClick={() => setIsDeleteOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 border border-[#FECACA] rounded-md text-sm font-medium text-[#B91C1C] bg-white hover:bg-[#FEF2F2] transition-colors shadow-none cursor-pointer"
+              >
+                <XCircle className="w-4 h-4" />
+                {t('Reject')}
+              </button>
+            </>
           )}
-          <button
-            onClick={() => setIsDeleteOpen(true)}
-            className="flex items-center justify-center w-9 h-9 border border-[#E4E4E7] rounded-md text-[#DC2626] bg-white hover:bg-[#FEF2F2] transition-colors shadow-none cursor-pointer"
-            title={t('Delete')}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
@@ -1072,9 +1086,9 @@ export default function SurveyDetail() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-[#F4F4F5] shrink-0">
-                <h2 className="text-lg font-bold text-[#0A0A0A] flex items-center gap-2">
-                  <Trash2 className="w-5 h-5 text-[#DC2626]" />
-                  {t('Delete Survey')}
+                <h2 className="text-lg font-semibold text-[#0A0A0A] flex items-center gap-2">
+                  <Ban className="w-5 h-5 text-[#DC2626]" />
+                  {t('Reject survey?')}
                 </h2>
                 <button
                   onClick={() => setIsDeleteOpen(false)}
@@ -1086,17 +1100,17 @@ export default function SurveyDetail() {
 
               <div className="p-6 bg-white">
                 <p className="text-[#52525B] text-sm leading-relaxed">
-                  {t('Are you sure you want to delete this survey? Any in-progress responses will be discarded.')}
+                  {t('The survey will be marked as rejected and removed from respondent feeds. The company will be notified.')}
                 </p>
                 <div className="mt-3 p-3 bg-white border border-[#E4E4E7] rounded-md">
                   <div className="font-medium text-[#0A0A0A] text-sm">{t(survey.title)}</div>
                   <div className="text-[#71717A] text-xs mt-1">
-                    {t(survey.category)} · {survey.responsesCurrent}/{survey.responsesTarget} {t('responses')}
+                    {survey.companyName} · {t(survey.category)} · {survey.responsesCurrent}/{survey.responsesTarget} {t('responses')}
                   </div>
                 </div>
-                <p className="mt-4 text-[#DC2626] text-xs font-medium flex items-center gap-1.5">
+                <p className="mt-4 text-[#B91C1C] text-xs font-medium flex items-center gap-1.5">
                   <AlertCircle className="w-4 h-4" />
-                  {t('This action cannot be undone.')}
+                  {t('You can reinstate this later from the Rejected tab.')}
                 </p>
               </div>
 
@@ -1108,10 +1122,10 @@ export default function SurveyDetail() {
                   {t('Cancel')}
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={handleReject}
                   className="px-4 py-2 text-sm font-medium text-white bg-[#DC2626] rounded-md hover:bg-[#B91C1C] transition-colors shadow-none cursor-pointer"
                 >
-                  {t('Delete Permanently')}
+                  {t('Reject survey')}
                 </button>
               </div>
             </motion.div>
