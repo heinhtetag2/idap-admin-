@@ -12,6 +12,8 @@ import Templates from '@/pages/templates';
 import Scribe from '@/pages/scribe';
 import Settings from '@/pages/settings';
 import EmployeeManagement from '@/pages/employees';
+import Billing from '@/pages/billing';
+import Help from '@/pages/help';
 import NotFound from '@/pages/not-found';
 
 export const router = createBrowserRouter([
@@ -28,7 +30,7 @@ export const router = createBrowserRouter([
       { path: 'community/templates', Component: Templates },
       { path: 'team', Component: Templates },
       { path: 'settings', Component: Settings },
-      { path: 'help', Component: Templates },
+      { path: 'help', Component: Help },
       { path: 'notifications', Component: Templates },
       { path: 'funding', Component: Funding },
       { path: 'funding/:id', Component: FundingDetail },
@@ -38,6 +40,7 @@ export const router = createBrowserRouter([
       { path: 'expenses', Component: Expenses },
       { path: 'expenses/:id', Component: ExpenseDetail },
       { path: 'payroll', Component: Templates },
+      { path: 'billing', Component: Billing },
       { path: 'employee-management', Component: EmployeeManagement },
       { path: 'budget-management', Component: Templates },
       { path: 'monthly-closing', Component: Templates },

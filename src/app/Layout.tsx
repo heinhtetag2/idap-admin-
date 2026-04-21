@@ -8,7 +8,7 @@ export default function Layout() {
   const location = useLocation();
 
   return (
-    <div className="flex h-screen w-full bg-[#FCFBF9] text-[#2C2627] font-sans overflow-hidden selection:bg-[#F3EFE9]">
+    <div className="flex h-screen w-full bg-white text-[#0A0A0A] font-sans overflow-hidden selection:bg-[#F4F4F5]">
       {/* Sidebar Navigation */}
       <Sidebar isCollapsed={isSidebarCollapsed} onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
 
@@ -21,7 +21,7 @@ export default function Layout() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 h-full flex flex-col overflow-y-auto bg-[#FAF9F6]"
+            className="flex-1 h-full flex flex-col overflow-y-auto bg-[#FAFAFA]"
           >
             <Outlet />
           </motion.div>

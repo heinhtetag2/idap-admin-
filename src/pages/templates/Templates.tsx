@@ -27,13 +27,13 @@ export default function Templates() {
       
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-serif text-[#2C2627]">{t('My Templates')}</h1>
+        <h1 className="text-3xl font-serif text-[#0A0A0A]">{t('My Templates')}</h1>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-[#EAE5E3] rounded-md text-sm font-medium text-[#2C2627] hover:bg-[#F5F2F0] transition-colors bg-white">
+          <button className="flex items-center gap-2 px-4 py-2 border border-[#E4E4E7] rounded-md text-sm font-medium text-[#0A0A0A] hover:bg-[#F4F4F5] transition-colors bg-white">
             <Globe className="w-4 h-4" />
             {t('Browse community')}
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#4C2D33] rounded-md text-sm font-medium text-white hover:bg-[#3D2328] transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 bg-[#FF3C21] rounded-md text-sm font-medium text-white hover:bg-[#E63419] transition-colors">
             <Plus className="w-4 h-4" />
             {t('Create template')}
           </button>
@@ -41,16 +41,16 @@ export default function Templates() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-6 border-b border-[#EAE5E3] mb-8 text-sm font-medium">
-        <button className="pb-3 border-b-2 border-[#2C2627] text-[#2C2627]">{t('All')}</button>
-        <button className="pb-3 text-[#8A8284] hover:text-[#2C2627] flex items-center gap-1.5"><FileIcon /> {t('Notes')}</button>
-        <button className="pb-3 text-[#8A8284] hover:text-[#2C2627] flex items-center gap-1.5"><DocIcon /> {t('Docs')}</button>
-        <button className="pb-3 text-[#8A8284] hover:text-[#2C2627] flex items-center gap-1.5"><FormIcon /> {t('Forms')}</button>
+      <div className="flex gap-6 border-b border-[#E4E4E7] mb-8 text-sm font-medium">
+        <button className="pb-3 border-b-2 border-[#FF3C21] text-[#0A0A0A]">{t('All')}</button>
+        <button className="pb-3 text-[#71717A] hover:text-[#0A0A0A] flex items-center gap-1.5"><FileIcon /> {t('Notes')}</button>
+        <button className="pb-3 text-[#71717A] hover:text-[#0A0A0A] flex items-center gap-1.5"><DocIcon /> {t('Docs')}</button>
+        <button className="pb-3 text-[#71717A] hover:text-[#0A0A0A] flex items-center gap-1.5"><FormIcon /> {t('Forms')}</button>
       </div>
 
       {/* Overview Section */}
       <div className="mb-10">
-        <h2 className="text-lg font-semibold text-[#2C2627] mb-4">{t('Overview')}</h2>
+        <h2 className="text-lg font-semibold text-[#0A0A0A] mb-4">{t('Overview')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
@@ -89,10 +89,10 @@ export default function Templates() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: i * 0.1 }}
-              className="bg-white rounded-md border border-[#F5F2F0] p-5 flex flex-col"
+              className="bg-white rounded-md border border-[#F4F4F5] p-5 flex flex-col"
             >
               <div className="flex justify-between items-start mb-6">
-                <div className="w-8 h-8 rounded-md bg-[#FCFBF9] flex items-center justify-center text-[#4C2D33]">
+                <div className="w-8 h-8 rounded-md bg-white flex items-center justify-center text-[#0A0A0A]">
                   {card.icon}
                 </div>
                 {card.trend && (
@@ -105,9 +105,9 @@ export default function Templates() {
                 )}
               </div>
               <div className="flex flex-col">
-                <div className="text-xs text-[#8A8284] font-medium mb-1">{t(card.title)}</div>
-                <div className="text-2xl font-bold text-[#2C2627] tracking-tight mb-1">{card.value}</div>
-                <div className="text-[11px] text-[#8A8284]">{t(card.subtitle)}</div>
+                <div className="text-xs text-[#71717A] font-medium mb-1">{t(card.title)}</div>
+                <div className="text-2xl font-bold text-[#0A0A0A] tracking-tight mb-1">{card.value}</div>
+                <div className="text-[11px] text-[#71717A]">{t(card.subtitle)}</div>
               </div>
             </motion.div>
           ))}
@@ -116,64 +116,64 @@ export default function Templates() {
 
       {/* Library Section */}
       <div>
-        <h2 className="text-lg font-semibold text-[#2C2627] mb-4">{t('Library')}</h2>
+        <h2 className="text-lg font-semibold text-[#0A0A0A] mb-4">{t('Library')}</h2>
         
         {/* Filters */}
         <div className="flex gap-3 mb-6">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A8284]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#71717A]" />
             <input 
               type="text" 
               placeholder={t('Search for a template')} 
-              className="w-full pl-9 pr-4 py-2 bg-white border border-[#EAE5E3] rounded-md text-sm focus:outline-none focus:border-[#4C2D33] focus:ring-1 focus:ring-[#4C2D33] placeholder:text-[#8A8284]"
+              className="w-full pl-9 pr-4 py-2 bg-white border border-[#E4E4E7] rounded-md text-sm focus:outline-none focus:border-[#FF3C21] focus:ring-1 focus:ring-[#FF3C21] placeholder:text-[#71717A]"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 border border-[#EAE5E3] bg-white rounded-md text-sm font-medium text-[#5A5254] hover:bg-[#F5F2F0] transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 border border-[#E4E4E7] bg-white rounded-md text-sm font-medium text-[#52525B] hover:bg-[#F4F4F5] transition-colors">
             <Calendar className="w-4 h-4" />
             {t('Date')}
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 border border-[#EAE5E3] bg-white rounded-md text-sm font-medium text-[#5A5254] hover:bg-[#F5F2F0] transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 border border-[#E4E4E7] bg-white rounded-md text-sm font-medium text-[#52525B] hover:bg-[#F4F4F5] transition-colors">
             <User className="w-4 h-4" />
             {t('Created by')}
           </button>
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-md border border-[#F5F2F0] overflow-hidden">
+        <div className="bg-white rounded-md border border-[#F4F4F5] overflow-hidden">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-[#F5F2F0] text-[#8A8284] font-medium bg-[#FCFBF9]">
+              <tr className="border-b border-[#F4F4F5] text-[#71717A] font-medium bg-[#FAFAFA]">
                 <th className="px-6 py-4 font-medium">{t('Template name')}</th>
-                <th className="px-6 py-4 font-medium flex items-center gap-1 cursor-pointer hover:text-[#5A5254]">{t('Last edited')} <ChevronDownIcon /></th>
+                <th className="px-6 py-4 font-medium flex items-center gap-1 cursor-pointer hover:text-[#52525B]">{t('Last edited')} <ChevronDownIcon /></th>
                 <th className="px-6 py-4 font-medium">{t('Last used')}</th>
                 <th className="px-6 py-4 font-medium">{t('Creator')}</th>
                 <th className="px-6 py-4 font-medium">{t('Visibility')}</th>
                 <th className="px-6 py-4 font-medium text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F5F2F0]">
+            <tbody className="divide-y divide-[#F4F4F5]">
               {tableData.map((row, i) => (
                 <motion.tr 
                   key={i} 
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2, delay: i * 0.05 }}
-                  className="hover:bg-[#FCFBF9] transition-colors group"
+                  className="hover:bg-white transition-colors group"
                 >
                   <td className="px-6 py-4 flex items-center gap-2">
-                    <span className="font-medium text-[#2C2627]">{row.name}</span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold bg-[#F5F2F0] text-[#8A8284]">{t(row.type)}</span>
+                    <span className="font-medium text-[#0A0A0A]">{row.name}</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold bg-[#F4F4F5] text-[#71717A]">{t(row.type)}</span>
                   </td>
-                  <td className="px-6 py-4 text-[#5A5254]">{row.edited}</td>
-                  <td className="px-6 py-4 text-[#5A5254]">{row.used}</td>
-                  <td className="px-6 py-4 font-medium text-[#2C2627]">{t(row.creator)}</td>
-                  <td className="px-6 py-4 text-[#5A5254]">{t(row.visibility)}</td>
+                  <td className="px-6 py-4 text-[#52525B]">{row.edited}</td>
+                  <td className="px-6 py-4 text-[#52525B]">{row.used}</td>
+                  <td className="px-6 py-4 font-medium text-[#0A0A0A]">{t(row.creator)}</td>
+                  <td className="px-6 py-4 text-[#52525B]">{t(row.visibility)}</td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button className="p-1.5 text-[#8A8284] hover:text-[#2C2627] hover:bg-[#F5F2F0] rounded-md"><Pencil className="w-4 h-4" /></button>
-                      <button className="p-1.5 text-[#8A8284] hover:text-[#2C2627] hover:bg-[#F5F2F0] rounded-md"><Star className="w-4 h-4" /></button>
-                      <button className="p-1.5 text-[#8A8284] hover:text-[#2C2627] hover:bg-[#F5F2F0] rounded-md"><UploadCloud className="w-4 h-4" /></button>
-                      <button className="p-1.5 text-[#8A8284] hover:text-[#2C2627] hover:bg-[#F5F2F0] rounded-md"><MoreHorizontal className="w-4 h-4" /></button>
+                      <button className="p-1.5 text-[#71717A] hover:text-[#0A0A0A] hover:bg-[#F4F4F5] rounded-md"><Pencil className="w-4 h-4" /></button>
+                      <button className="p-1.5 text-[#71717A] hover:text-[#0A0A0A] hover:bg-[#F4F4F5] rounded-md"><Star className="w-4 h-4" /></button>
+                      <button className="p-1.5 text-[#71717A] hover:text-[#0A0A0A] hover:bg-[#F4F4F5] rounded-md"><UploadCloud className="w-4 h-4" /></button>
+                      <button className="p-1.5 text-[#71717A] hover:text-[#0A0A0A] hover:bg-[#F4F4F5] rounded-md"><MoreHorizontal className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </motion.tr>

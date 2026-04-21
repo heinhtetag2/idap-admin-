@@ -1,157 +1,318 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import { motion } from 'motion/react';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Users, 
-  Activity, 
-  CreditCard,
+import {
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Calendar,
+  CreditCard,
+  ClipboardList,
+  MessageSquare,
+  Star,
+  ArrowRight,
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
+import { BrandSelect } from '@/shared/ui/brand-select';
+import {
   AreaChart,
   Area,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
-  Cell
+  Cell,
 } from 'recharts';
+import { DEMO_SURVEYS } from '@/pages/surveys/survey-data';
 
-const revenueData = [
-  { name: 'Jan', value: 4000 },
-  { name: 'Feb', value: 3000 },
-  { name: 'Mar', value: 2000 },
-  { name: 'Apr', value: 2780 },
-  { name: 'May', value: 1890 },
-  { name: 'Jun', value: 2390 },
-  { name: 'Jul', value: 3490 },
-];
+// --- derived product metrics ---
+const activeSurveys = DEMO_SURVEYS.filter((s) => s.status === 'Active').length;
+const draftSurveys = DEMO_SURVEYS.filter((s) => s.status === 'Draft').length;
+const totalResponses = DEMO_SURVEYS.reduce((sum, s) => sum + s.responsesCurrent, 0);
+const scored = DEMO_SURVEYS.filter((s) => s.avgQuality > 0);
+const avgQuality =
+  scored.length > 0 ? scored.reduce((sum, s) => sum + s.avgQuality, 0) / scored.length : 0;
+const creditsBalance = 450_000;
 
-const expensesData = [
-  { name: 'Jan', value: 2400 },
-  { name: 'Feb', value: 1398 },
-  { name: 'Mar', value: 9800 },
-  { name: 'Apr', value: 3908 },
-  { name: 'May', value: 4800 },
-  { name: 'Jun', value: 3800 },
-  { name: 'Jul', value: 4300 },
-];
+// --- chart data varies by selected range ---
+type RangeKey = '7d' | '30d' | 'this_month' | 'last_month';
+
+interface ChartPoint { name: string; value: number; }
+interface RangeData {
+  response: ChartPoint[];
+  credits: ChartPoint[];
+  responseTrend: number;
+  creditsTrend: number;
+  subtitle: string;
+  creditsBucketLabel: string;
+}
+
+const CHART_DATA: Record<RangeKey, RangeData> = {
+  '7d': {
+    response: [
+      { name: 'Mon', value: 42 }, { name: 'Tue', value: 58 }, { name: 'Wed', value: 31 },
+      { name: 'Thu', value: 74 }, { name: 'Fri', value: 89 }, { name: 'Sat', value: 62 }, { name: 'Sun', value: 54 },
+    ],
+    credits: [
+      { name: 'Mon', value: 18_000 }, { name: 'Tue', value: 24_000 }, { name: 'Wed', value: 13_000 },
+      { name: 'Thu', value: 32_000 }, { name: 'Fri', value: 41_000 }, { name: 'Sat', value: 26_000 }, { name: 'Sun', value: 22_000 },
+    ],
+    responseTrend: 12.4,
+    creditsTrend: -3.1,
+    subtitle: 'in the last 7 days',
+    creditsBucketLabel: 'This week',
+  },
+  '30d': {
+    response: [
+      { name: 'Week 1', value: 248 }, { name: 'Week 2', value: 312 }, { name: 'Week 3', value: 287 }, { name: 'Week 4', value: 394 },
+    ],
+    credits: [
+      { name: 'Week 1', value: 92_000 }, { name: 'Week 2', value: 118_000 }, { name: 'Week 3', value: 104_000 }, { name: 'Week 4', value: 142_000 },
+    ],
+    responseTrend: 8.7,
+    creditsTrend: 14.2,
+    subtitle: 'in the last 30 days',
+    creditsBucketLabel: 'Last 30 days',
+  },
+  this_month: {
+    response: [
+      { name: 'W1', value: 210 }, { name: 'W2', value: 298 }, { name: 'W3', value: 341 }, { name: 'W4', value: 176 },
+    ],
+    credits: [
+      { name: 'W1', value: 78_000 }, { name: 'W2', value: 112_000 }, { name: 'W3', value: 128_000 }, { name: 'W4', value: 62_000 },
+    ],
+    responseTrend: 6.1,
+    creditsTrend: 9.4,
+    subtitle: 'this month',
+    creditsBucketLabel: 'This month',
+  },
+  last_month: {
+    response: [
+      { name: 'W1', value: 188 }, { name: 'W2', value: 254 }, { name: 'W3', value: 301 }, { name: 'W4', value: 229 },
+    ],
+    credits: [
+      { name: 'W1', value: 98_000 }, { name: 'W2', value: 124_000 }, { name: 'W3', value: 138_000 }, { name: 'W4', value: 110_000 },
+    ],
+    responseTrend: -2.3,
+    creditsTrend: 5.8,
+    subtitle: 'last month',
+    creditsBucketLabel: 'Last month',
+  },
+};
+
+// --- top performing surveys (by responses collected) ---
+const topSurveys = [...DEMO_SURVEYS]
+  .filter((s) => s.responsesCurrent > 0)
+  .sort((a, b) => b.responsesCurrent - a.responsesCurrent)
+  .slice(0, 4);
+
+function formatMnt(value: number): string {
+  return `₮${value.toLocaleString('en-US')}`;
+}
+
+function formatCompact(value: number): string {
+  if (value >= 1_000_000) return `₮${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `₮${(value / 1_000).toFixed(0)}K`;
+  return `₮${value}`;
+}
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [dateRange, setDateRange] = useState<RangeKey>('7d');
+  const range = CHART_DATA[dateRange];
+  const responseTotal = range.response.reduce((sum, d) => sum + d.value, 0);
+  const creditsTotal = range.credits.reduce((sum, d) => sum + d.value, 0);
+
+  const stats = [
+    {
+      title: 'Available Credits',
+      value: formatMnt(creditsBalance),
+      Icon: CreditCard,
+      trend: '+20%',
+      isPositive: true,
+      subtitle: 'Top-ups this month',
+      href: '/billing',
+    },
+    {
+      title: 'Active Surveys',
+      value: String(activeSurveys),
+      Icon: ClipboardList,
+      trend: `${draftSurveys} drafts`,
+      isPositive: null,
+      subtitle: `${DEMO_SURVEYS.length} total`,
+      href: '/surveys',
+    },
+    {
+      title: 'Total Responses',
+      value: totalResponses.toLocaleString(),
+      Icon: MessageSquare,
+      trend: '+8.3%',
+      isPositive: true,
+      subtitle: 'Across all live surveys',
+      href: '/surveys',
+    },
+    {
+      title: 'Avg. Quality Score',
+      value: avgQuality.toFixed(1),
+      Icon: Star,
+      trend: '+0.2',
+      isPositive: true,
+      subtitle: 'Out of 5.0',
+      href: '/surveys',
+    },
+  ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="flex-1 overflow-y-auto w-full px-6 md:px-8 xl:px-12 py-8 bg-[#FAF9F6]"
+      className="flex-1 overflow-y-auto w-full px-6 md:px-8 xl:px-12 py-8 bg-[#FAFAFA]"
     >
-      <div className="flex justify-between items-center mb-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8 gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-serif text-[#2C2627]">{t('Dashboard')}</h1>
-          <p className="text-sm text-[#8A8284] mt-1">{t('Welcome back. Here is what is happening today.')}</p>
+          <h1 className="text-3xl font-serif text-[#0A0A0A]">{t('Dashboard')}</h1>
+          <p className="text-sm text-[#71717A] mt-1">
+            {t('Overview of your surveys, responses, and credit activity.')}
+          </p>
         </div>
         <div className="flex gap-3">
-          <select className="appearance-none pl-4 pr-10 py-2 bg-white border border-[#EAE5E3] rounded-md text-sm font-medium text-[#2C2627] focus:outline-none focus:border-[#4C2D33] shadow-none cursor-pointer">
-            <option>Last 7 days</option>
-            <option>Last 30 days</option>
-            <option>This month</option>
-            <option>Last month</option>
-          </select>
+          <BrandSelect
+            value={dateRange}
+            onValueChange={(v) => setDateRange(v as RangeKey)}
+            leftIcon={<Calendar />}
+            ariaLabel={t('Chart range')}
+            options={[
+              { value: '7d', label: t('Last 7 days') },
+              { value: '30d', label: t('Last 30 days') },
+              { value: 'this_month', label: t('This month') },
+              { value: 'last_month', label: t('Last month') },
+            ]}
+          />
         </div>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { title: 'Total Revenue', value: '$45,231.89', trend: '+20.1%', isPositive: true, icon: DollarSign },
-          { title: 'Total Expenses', value: '$12,450.00', trend: '+4.5%', isPositive: false, icon: CreditCard },
-          { title: 'Active Users', value: '2,350', trend: '+15.2%', isPositive: true, icon: Users },
-          { title: 'Conversion Rate', value: '3.8%', trend: '-1.2%', isPositive: false, icon: Activity }
-        ].map((stat, i) => (
-          <motion.div 
-            key={i}
+        {stats.map((stat, i) => (
+          <motion.button
+            key={stat.title}
+            onClick={() => navigate(stat.href)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: i * 0.1 }}
-            className="bg-white border border-[#EAE5E3] rounded-md p-5 flex flex-col justify-center shadow-none hover:border-[#D5C9C6] transition-colors group"
+            transition={{ duration: 0.3, delay: i * 0.08 }}
+            className="text-left bg-white border border-[#E4E4E7] rounded-md p-5 flex flex-col justify-center shadow-none hover:border-[#D4D4D8] transition-colors group cursor-pointer"
           >
             <div className="flex justify-between items-start mb-4">
-              <span className="text-sm font-medium text-[#8A8284]">{t(stat.title)}</span>
-              <div className="p-2 bg-[#F5F2F0] rounded-md text-[#5A5254] group-hover:bg-[#4C2D33] group-hover:text-white transition-colors">
-                <stat.icon className="w-4 h-4" />
+              <span className="text-sm font-medium text-[#71717A]">{t(stat.title)}</span>
+              <div className="p-2 bg-[#F4F4F5] rounded-md text-[#52525B] group-hover:bg-[#FF3C21] group-hover:text-white transition-colors">
+                <stat.Icon className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold text-[#2C2627]">{stat.value}</span>
+            <div className="text-2xl font-semibold text-[#0A0A0A] tabular-nums">{stat.value}</div>
+            <div className="text-xs flex items-center gap-1.5 font-medium mt-2">
+              {stat.isPositive === true && (
+                <span className="text-[#047857] flex items-center gap-0.5">
+                  <ArrowUpRight className="w-3 h-3" />
+                  {stat.trend}
+                </span>
+              )}
+              {stat.isPositive === false && (
+                <span className="text-[#DC2626] flex items-center gap-0.5">
+                  <ArrowDownRight className="w-3 h-3" />
+                  {stat.trend}
+                </span>
+              )}
+              {stat.isPositive === null && <span className="text-[#52525B]">{stat.trend}</span>}
+              <span className="text-[#D4D4D8]">•</span>
+              <span className="text-[#71717A] font-normal">{t(stat.subtitle)}</span>
             </div>
-            <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${stat.isPositive ? 'text-[#2E7D32]' : 'text-[#D93D4A]'}`}>
-              {stat.isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-              {stat.trend} <span className="text-[#8A8284] ml-1 font-normal">from last month</span>
-            </div>
-          </motion.div>
+          </motion.button>
         ))}
       </div>
 
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Revenue Chart */}
-        <motion.div 
+        {/* Response Collection */}
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.4 }}
-          className="bg-white border border-[#EAE5E3] rounded-md p-6 shadow-none"
+          className="bg-white border border-[#E4E4E7] rounded-md p-6 shadow-none"
         >
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-[#2C2627]">{t('Revenue Overview')}</h2>
-              <p className="text-sm text-[#8A8284]">{t('Monthly revenue performance')}</p>
+              <h2 className="text-base font-semibold text-[#0A0A0A]">
+                {t('Response Collection')}
+              </h2>
+              <p className="text-xs text-[#71717A] mt-0.5">
+                {t('Responses collected')} {t(range.subtitle)}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-xl font-semibold text-[#0A0A0A] tabular-nums">
+                {responseTotal.toLocaleString()}
+              </div>
+              <div
+                className={`text-xs font-medium flex items-center gap-0.5 justify-end ${
+                  range.responseTrend >= 0 ? 'text-[#047857]' : 'text-[#DC2626]'
+                }`}
+              >
+                {range.responseTrend >= 0 ? (
+                  <ArrowUpRight className="w-3 h-3" />
+                ) : (
+                  <ArrowDownRight className="w-3 h-3" />
+                )}
+                {Math.abs(range.responseTrend).toFixed(1)}%
+              </div>
             </div>
           </div>
-          <div className="h-[300px] w-full min-w-0 min-h-0">
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <div className="h-[260px] w-full min-w-0 min-h-0">
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={range.response} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4C2D33" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#4C2D33" stopOpacity={0}/>
+                  <linearGradient id="colorResponses" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FF3C21" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#FF3C21" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F5F2F0" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#8A8284' }} 
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F4F4F5" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#71717A' }}
                   dy={10}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#8A8284' }}
-                  tickFormatter={(value) => `$${value}`}
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#71717A' }}
                 />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#2C2627', borderRadius: '6px', border: 'none', color: '#fff', fontSize: '12px' }}
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0A0A0A',
+                    borderRadius: '6px',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: '12px',
+                  }}
                   itemStyle={{ color: '#fff' }}
-                  cursor={{ stroke: '#EAE5E3', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  labelStyle={{ color: '#A1A1AA' }}
+                  formatter={(value: number) => [`${value} responses`, '']}
+                  cursor={{ stroke: '#E4E4E7', strokeWidth: 1, strokeDasharray: '4 4' }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#4C2D33" 
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#FF3C21"
                   strokeWidth={2}
-                  fillOpacity={1} 
-                  fill="url(#colorValue)" 
+                  fillOpacity={1}
+                  fill="url(#colorResponses)"
                   isAnimationActive={false}
                 />
               </AreaChart>
@@ -159,47 +320,75 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Expenses Chart */}
-        <motion.div 
+        {/* Credits Spent */}
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.5 }}
-          className="bg-white border border-[#EAE5E3] rounded-md p-6 shadow-none"
+          className="bg-white border border-[#E4E4E7] rounded-md p-6 shadow-none"
         >
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-[#2C2627]">{t('Expenses Overview')}</h2>
-              <p className="text-sm text-[#8A8284]">{t('Monthly expenses tracking')}</p>
+              <h2 className="text-base font-semibold text-[#0A0A0A]">{t('Credits Spent')}</h2>
+              <p className="text-xs text-[#71717A] mt-0.5">
+                {t('Survey reward payouts')} {t(range.subtitle)}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-xl font-semibold text-[#0A0A0A] tabular-nums">
+                {formatCompact(creditsTotal)}
+              </div>
+              <div
+                className={`text-xs font-medium flex items-center gap-0.5 justify-end ${
+                  range.creditsTrend >= 0 ? 'text-[#047857]' : 'text-[#DC2626]'
+                }`}
+              >
+                {range.creditsTrend >= 0 ? (
+                  <ArrowUpRight className="w-3 h-3" />
+                ) : (
+                  <ArrowDownRight className="w-3 h-3" />
+                )}
+                {Math.abs(range.creditsTrend).toFixed(1)}%
+              </div>
             </div>
           </div>
-          <div className="h-[300px] w-full min-w-0 min-h-0">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={expensesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F5F2F0" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#8A8284' }} 
+          <div className="h-[260px] w-full min-w-0 min-h-0">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={range.credits} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F4F4F5" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#71717A' }}
                   dy={10}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#8A8284' }}
-                  tickFormatter={(value) => `$${value}`}
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#71717A' }}
+                  tickFormatter={(v: number) => `${v / 1000}K`}
                 />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#2C2627', borderRadius: '6px', border: 'none', color: '#fff', fontSize: '12px' }}
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0A0A0A',
+                    borderRadius: '6px',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: '12px',
+                  }}
                   itemStyle={{ color: '#fff' }}
-                  cursor={{ fill: '#F5F2F0' }}
+                  labelStyle={{ color: '#A1A1AA' }}
+                  formatter={(value: number) => [formatMnt(value), '']}
+                  cursor={{ fill: '#F4F4F5' }}
                 />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
-                  {
-                    expensesData.map((entry, index) => (
-                      <Cell key={`expense-cell-${index}-${entry.name}`} fill={index === expensesData.length - 1 ? '#4C2D33' : '#EAE5E3'} />
-                    ))
-                  }
+                  {range.credits.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}-${entry.name}`}
+                      fill={index === range.credits.length - 1 ? '#FF3C21' : '#E4E4E7'}
+                    />
+                  ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -207,6 +396,66 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      {/* Top Performing Surveys */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.6 }}
+        className="bg-white border border-[#E4E4E7] rounded-md shadow-none overflow-hidden"
+      >
+        <div className="px-6 pt-5 pb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-[#0A0A0A]">{t('Top Performing Surveys')}</h2>
+            <p className="text-xs text-[#71717A] mt-0.5">
+              {t('Ranked by responses collected')}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/surveys')}
+            className="flex items-center gap-1 text-xs font-medium text-[#FF3C21] hover:text-[#E63419] transition-colors cursor-pointer shrink-0"
+          >
+            {t('View all')}
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="divide-y divide-[#F4F4F5] border-t border-[#F4F4F5]">
+          {topSurveys.map((s) => {
+            const pct = Math.min(100, Math.round((s.responsesCurrent / Math.max(1, s.responsesTarget)) * 100));
+            return (
+              <button
+                key={s.id}
+                onClick={() => navigate(`/surveys/${s.id.toLowerCase()}`)}
+                className="w-full grid grid-cols-[1fr_auto_auto_auto] items-center gap-6 px-6 py-4 text-left hover:bg-[#FAFAFA] transition-colors cursor-pointer group"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium text-[#0A0A0A] truncate">{s.title}</div>
+                  <div className="text-xs text-[#71717A] mt-0.5">{t(s.category)}</div>
+                </div>
+
+                <div className="hidden sm:flex flex-col items-start w-40 gap-1.5">
+                  <div className="relative w-full h-1.5 bg-[#F4F4F5] rounded-full overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 left-0 bg-[#FF3C21] rounded-full"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] text-[#71717A] tabular-nums">
+                    {s.responsesCurrent}/{s.responsesTarget}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs font-medium text-[#52525B] tabular-nums">
+                  <Star className="w-3.5 h-3.5 text-[#FF3C21]" fill="#FF3C21" />
+                  {s.avgQuality.toFixed(1)}
+                </div>
+
+                <ArrowRight className="w-4 h-4 text-[#A1A1AA] group-hover:text-[#52525B] transition-colors" />
+              </button>
+            );
+          })}
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
