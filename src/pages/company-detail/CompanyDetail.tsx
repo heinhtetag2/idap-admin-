@@ -31,6 +31,9 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   FileText,
+  ShieldAlert,
+  AlertTriangle,
+  ArrowRight,
 } from 'lucide-react';
 import {
   Drawer,
@@ -47,6 +50,14 @@ import {
   type CompanyStatus,
 } from '@/pages/companies/company-data';
 import { DEMO_SURVEYS, type Survey, type SurveyStatus } from '@/pages/surveys/survey-data';
+import {
+  getReportsByCompanyId,
+  type Report,
+  type ReportReason,
+  type ReportSeverity,
+  type ReportStatus,
+} from '@/pages/reports/report-data';
+import { AdminNotes, type AdminNote } from '@/widgets/admin-notes';
 
 function formatMnt(value: number): string {
   if (value >= 1_000_000) return `₮${(value / 1_000_000).toFixed(1)}M`;
@@ -57,38 +68,66 @@ function formatMnt(value: number): string {
 function getStatusStyles(status: CompanyStatus) {
   switch (status) {
     case 'Pending':
-      return { badge: 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]', Icon: Clock };
+      return { badge: 'bg-[#FFFBEB] text-[#B45309]', Icon: Clock };
     case 'Approved':
-      return { badge: 'bg-[#ECFDF5] text-[#047857] border border-[#D1FAE5]', Icon: CheckCircle2 };
+      return { badge: 'bg-[#ECFDF5] text-[#047857]', Icon: CheckCircle2 };
     case 'Suspended':
-      return { badge: 'bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA]', Icon: Ban };
+      return { badge: 'bg-[#FEF2F2] text-[#B91C1C]', Icon: Ban };
   }
 }
 
 function getPlanStyles(plan: CompanyPlan) {
   switch (plan) {
     case 'Enterprise':
-      return 'bg-[#FFF1EE] text-[#C2410C] border border-[#FED7AA]';
+      return 'bg-[#FFF1EE] text-[#C2410C]';
     case 'Growth':
-      return 'bg-[#EFF6FF] text-[#1D4ED8] border border-[#DBEAFE]';
+      return 'bg-[#EFF6FF] text-[#1D4ED8]';
     case 'Starter':
-      return 'bg-[#F4F4F5] text-[#52525B] border border-[#E4E4E7]';
+      return 'bg-[#F3F3F3] text-[#4A4A4A]';
+  }
+}
+
+function getReportStatusStyles(status: ReportStatus) {
+  switch (status) {
+    case 'New':          return { badge: 'bg-[#FEF2F2] text-[#B91C1C]', Icon: ShieldAlert };
+    case 'Under review': return { badge: 'bg-[#FFFBEB] text-[#B45309]', Icon: Clock };
+    case 'Resolved':     return { badge: 'bg-[#ECFDF5] text-[#047857]', Icon: CheckCircle2 };
+    case 'Dismissed':    return { badge: 'bg-[#F3F3F3] text-[#8A8A8A]', Icon: XCircle };
+  }
+}
+
+function getReportSeverityStyles(severity: ReportSeverity) {
+  switch (severity) {
+    case 'Low':    return { badge: 'bg-[#F3F3F3] text-[#4A4A4A]', dot: 'bg-[#8A8A8A]' };
+    case 'Medium': return { badge: 'bg-[#FFFBEB] text-[#B45309]', dot: 'bg-[#B45309]' };
+    case 'High':   return { badge: 'bg-[#FEF2F2] text-[#B91C1C]', dot: 'bg-[#B91C1C]' };
+  }
+}
+
+function getReportReasonStyles(reason: ReportReason) {
+  switch (reason) {
+    case 'Harassment':        return 'bg-[#FEF2F2] text-[#B91C1C]';
+    case 'Misleading survey': return 'bg-[#FFFBEB] text-[#B45309]';
+    case 'Non-payment':       return 'bg-[#FFF1EE] text-[#C2410C]';
+    case 'Privacy violation': return 'bg-[#F5F3FF] text-[#5B21B6]';
+    case 'Spam':              return 'bg-[#EFF6FF] text-[#1D4ED8]';
+    case 'Other':             return 'bg-[#F3F3F3] text-[#4A4A4A]';
   }
 }
 
 function getSurveyStatusStyles(status: SurveyStatus) {
   switch (status) {
-    case 'Active':    return 'bg-[#ECFDF5] text-[#047857] border border-[#D1FAE5]';
-    case 'Draft':     return 'bg-[#F4F4F5] text-[#71717A] border border-[#E4E4E7]';
-    case 'Paused':    return 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]';
-    case 'Completed': return 'bg-[#EFF6FF] text-[#1D4ED8] border border-[#DBEAFE]';
-    case 'Rejected':  return 'bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA]';
+    case 'Active':    return 'bg-[#ECFDF5] text-[#047857]';
+    case 'Draft':     return 'bg-[#F3F3F3] text-[#8A8A8A]';
+    case 'Paused':    return 'bg-[#FFFBEB] text-[#B45309]';
+    case 'Completed': return 'bg-[#EFF6FF] text-[#1D4ED8]';
+    case 'Rejected':  return 'bg-[#FEF2F2] text-[#B91C1C]';
   }
 }
 
 function activityIcon(kind: CompanyActivityKind) {
   switch (kind) {
-    case 'joined':          return { Icon: UserCircle2,    tone: 'bg-[#F4F4F5] text-[#52525B]' };
+    case 'joined':          return { Icon: UserCircle2,    tone: 'bg-[#F3F3F3] text-[#4A4A4A]' };
     case 'approved':        return { Icon: CheckCircle2,   tone: 'bg-[#ECFDF5] text-[#047857]' };
     case 'survey-launched': return { Icon: ClipboardList,  tone: 'bg-[#FFF1EE] text-[#FF3C21]' };
     case 'payout':          return { Icon: Receipt,        tone: 'bg-[#EFF6FF] text-[#1D4ED8]' };
@@ -104,7 +143,7 @@ export default function CompanyDetail() {
 
   const initial = id ? findCompanyById(id) : undefined;
   const [company, setCompany] = useState<Company | undefined>(initial);
-  const [activeTab, setActiveTab] = useState<'overview' | 'surveys' | 'billing'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'surveys' | 'reports' | 'billing'>('overview');
   const [isBillingHistoryOpen, setIsBillingHistoryOpen] = useState(false);
   const [confirming, setConfirming] = useState<
     | { action: 'approve' | 'reject' | 'suspend' | 'reinstate' }
@@ -114,22 +153,22 @@ export default function CompanyDetail() {
   if (!company) {
     return (
       <div className="w-full px-6 md:px-8 xl:px-12 py-8 bg-[#FAFAFA] min-h-full">
-        <nav className="flex items-center gap-2 text-sm text-[#71717A] mb-4">
+        <nav className="flex items-center gap-2 text-sm text-[#8A8A8A] mb-4">
           <button
             onClick={() => navigate('/companies')}
-            className="font-normal hover:text-[#0A0A0A] transition-colors cursor-pointer"
+            className="font-normal hover:text-[#1A1A1A] transition-colors cursor-pointer"
           >
             {t('Companies')}
           </button>
-          <span className="text-[#D4D4D8]">/</span>
-          <span className="text-[#0A0A0A] font-medium">{t('Not found')}</span>
+          <span className="text-[#D4D4D4]">/</span>
+          <span className="text-[#1A1A1A] font-medium">{t('Not found')}</span>
         </nav>
         <div className="max-w-md mx-auto text-center mt-16">
-          <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-5 h-5 text-[#71717A]" />
+          <div className="w-12 h-12 rounded-full bg-[#F3F3F3] flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-5 h-5 text-[#8A8A8A]" />
           </div>
-          <h2 className="text-lg font-semibold text-[#0A0A0A]">{t('Company not found')}</h2>
-          <p className="text-sm text-[#71717A] mt-1">
+          <h2 className="text-lg font-medium text-[#1A1A1A]">{t('Company not found')}</h2>
+          <p className="text-sm text-[#8A8A8A] mt-1">
             {t("This company may have been removed or the link is invalid.")}
           </p>
           <button
@@ -189,6 +228,19 @@ export default function CompanyDetail() {
     : null;
 
   const companySurveys: Survey[] = DEMO_SURVEYS.filter((s) => s.companyId === company.id);
+  const companyReports: Report[] = getReportsByCompanyId(company.id);
+  const seedNotes: AdminNote[] = company.status === 'Suspended'
+    ? [{
+        id: `seed-${company.id}-1`,
+        author: 'Oyunbileg',
+        authorInitial: 'O',
+        content: 'Suspended pending billing resolution. Legal notified. Will revisit after April 30.',
+        createdAt: '2026-03-14T10:22:00',
+      }]
+    : [];
+  const openReportsCount = companyReports.filter(
+    (r) => r.status === 'New' || r.status === 'Under review',
+  ).length;
 
   const stats = [
     {
@@ -225,15 +277,15 @@ export default function CompanyDetail() {
       className="w-full px-6 md:px-8 xl:px-12 py-8 bg-[#FAFAFA] min-h-full"
     >
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-[#71717A] mb-4">
+      <nav className="flex items-center gap-2 text-sm text-[#8A8A8A] mb-4">
         <button
           onClick={() => navigate('/companies')}
-          className="font-normal hover:text-[#0A0A0A] transition-colors cursor-pointer"
+          className="font-normal hover:text-[#1A1A1A] transition-colors cursor-pointer"
         >
           {t('Companies')}
         </button>
-        <span className="text-[#D4D4D8]">/</span>
-        <span className="text-[#0A0A0A] font-medium">{company.name}</span>
+        <span className="text-[#D4D4D4]">/</span>
+        <span className="text-[#1A1A1A] font-medium">{company.name}</span>
       </nav>
 
       {/* Header */}
@@ -244,18 +296,18 @@ export default function CompanyDetail() {
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <h1 className="text-3xl font-serif text-[#0A0A0A] leading-tight">{company.name}</h1>
+              <h1 className="text-3xl font-serif text-[#1A1A1A] leading-tight">{company.name}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-medium tracking-wide rounded-full ${statusStyle.badge}`}>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-medium rounded-full ${statusStyle.badge}`}>
                 <statusStyle.Icon className="w-3 h-3" />
                 {t(company.status)}
               </span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium tracking-wide rounded-full ${getPlanStyles(company.plan)}`}>
+              <span className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium rounded-full ${getPlanStyles(company.plan)}`}>
                 {t(company.plan)}
               </span>
-              <span className="text-sm text-[#71717A]">·</span>
-              <span className="text-sm text-[#52525B]">{company.industry}</span>
+              <span className="text-sm text-[#8A8A8A]">·</span>
+              <span className="text-sm text-[#4A4A4A]">{company.industry}</span>
             </div>
           </div>
         </div>
@@ -266,9 +318,9 @@ export default function CompanyDetail() {
             <>
               <button
                 onClick={() => setConfirming({ action: 'reject' })}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#0A0A0A] bg-white border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#1A1A1A] bg-white border border-[#E3E3E3] rounded-md hover:bg-[#F3F3F3] transition-colors cursor-pointer"
               >
-                <XCircle className="w-4 h-4 text-[#71717A]" />
+                <XCircle className="w-4 h-4 text-[#8A8A8A]" />
                 {t('Reject')}
               </button>
               <button
@@ -302,10 +354,11 @@ export default function CompanyDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-[#E4E4E7] mb-6 overflow-x-auto">
+      <div className="flex gap-1 border-b border-[#E3E3E3] mb-6 overflow-x-auto">
         {([
           { id: 'overview', Icon: LayoutDashboard, label: t('Overview') },
           { id: 'surveys',  Icon: ClipboardList,   label: t('Surveys'),  count: companySurveys.length },
+          { id: 'reports',  Icon: ShieldAlert,     label: t('Reports'),  count: companyReports.length, openCount: openReportsCount },
           { id: 'billing',  Icon: CreditCard,      label: t('Billing') },
         ] as const).map((tab) => {
           const isActive = activeTab === tab.id;
@@ -314,13 +367,18 @@ export default function CompanyDetail() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`relative inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                isActive ? 'text-[#0A0A0A]' : 'text-[#52525B] hover:text-[#0A0A0A]'
+                isActive ? 'text-[#1A1A1A]' : 'text-[#4A4A4A] hover:text-[#1A1A1A]'
               }`}
             >
               <tab.Icon className="w-4 h-4" />
               {tab.label}
               {'count' in tab && tab.count !== undefined && (
-                <span className="text-[#71717A] font-normal tabular-nums">({tab.count})</span>
+                <span className="text-[#8A8A8A] font-normal tabular-nums">({tab.count})</span>
+              )}
+              {'openCount' in tab && tab.openCount !== undefined && tab.openCount > 0 && (
+                <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[10px] font-medium rounded-full bg-[#FEF2F2] text-[#B91C1C] tabular-nums">
+                  {tab.openCount}
+                </span>
               )}
               {isActive && (
                 <span className="absolute left-0 right-0 -bottom-[1px] h-0.5 bg-[#FF3C21] rounded-full" />
@@ -346,102 +404,106 @@ export default function CompanyDetail() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.08 }}
-                className="bg-white border border-[#E4E4E7] rounded-md p-5 flex flex-col justify-center shadow-none hover:border-[#D4D4D8] transition-colors group"
+                className="bg-white border border-[#E3E3E3] rounded-md p-5 flex flex-col justify-center shadow-none hover:border-[#FFDED5] transition-colors group"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <span className="text-sm font-medium text-[#71717A]">{t(card.title)}</span>
-                  <div className="p-2 bg-[#F4F4F5] rounded-md text-[#52525B] group-hover:bg-[#FF3C21] group-hover:text-white transition-colors">
+                  <span className="text-sm font-medium text-[#8A8A8A]">{t(card.title)}</span>
+                  <div className="p-2 bg-[#F3F3F3] rounded-md text-[#4A4A4A] group-hover:bg-[#FF3C21] group-hover:text-white transition-colors">
                     <card.Icon className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl font-semibold text-[#0A0A0A]">{card.value}</div>
-                <div className="text-xs text-[#52525B] mt-2">{card.subtitle}</div>
+                <div className="text-2xl font-semibold text-[#1A1A1A]">{card.value}</div>
+                <div className="text-xs text-[#4A4A4A] mt-2">{card.subtitle}</div>
               </motion.div>
             ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <section className="lg:col-span-2 bg-white border border-[#E4E4E7] rounded-md shadow-none overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#F4F4F5]">
-              <h2 className="text-base font-semibold text-[#0A0A0A]">{t('Company details')}</h2>
-              <p className="text-xs text-[#71717A] mt-0.5">{t('Contact and organization info')}</p>
+          <div className="lg:col-span-2 space-y-6">
+          <section className="bg-white border border-[#E3E3E3] rounded-md shadow-none overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#F3F3F3]">
+              <h2 className="text-base font-medium text-[#1A1A1A]">{t('Company details')}</h2>
+              <p className="text-xs text-[#8A8A8A] mt-0.5">{t('Contact and organization info')}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 px-6 py-5">
               <InfoRow Icon={UserCircle2} label={t('Primary contact')}>
-                <div className="text-sm font-medium text-[#0A0A0A]">{company.contactPerson}</div>
-                <div className="text-xs text-[#71717A]">{company.contactRole}</div>
+                <div className="text-sm font-medium text-[#1A1A1A]">{company.contactPerson}</div>
+                <div className="text-xs text-[#8A8A8A]">{company.contactRole}</div>
               </InfoRow>
               <InfoRow Icon={Mail} label={t('Email')}>
                 <a
                   href={`mailto:${company.email}`}
-                  className="text-sm text-[#0A0A0A] hover:text-[#FF3C21] transition-colors break-all"
+                  className="text-sm text-[#1A1A1A] hover:text-[#FF3C21] transition-colors break-all"
                 >
                   {company.email}
                 </a>
               </InfoRow>
               <InfoRow Icon={Phone} label={t('Phone')}>
-                <span className="text-sm text-[#0A0A0A] tabular-nums">{company.phone}</span>
+                <span className="text-sm text-[#1A1A1A] tabular-nums">{company.phone}</span>
               </InfoRow>
               <InfoRow Icon={Globe} label={t('Website')}>
                 <a
                   href={`https://${company.website}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm text-[#0A0A0A] hover:text-[#FF3C21] transition-colors"
+                  className="text-sm text-[#1A1A1A] hover:text-[#FF3C21] transition-colors"
                 >
                   {company.website}
                 </a>
               </InfoRow>
               <InfoRow Icon={Building2} label={t('Industry')}>
-                <span className="text-sm text-[#0A0A0A]">{company.industry}</span>
+                <span className="text-sm text-[#1A1A1A]">{company.industry}</span>
               </InfoRow>
               <InfoRow Icon={Users} label={t('Team size')}>
-                <span className="text-sm text-[#0A0A0A]">{company.teamSize}</span>
+                <span className="text-sm text-[#1A1A1A]">{company.teamSize}</span>
               </InfoRow>
               <div className="sm:col-span-2">
                 <InfoRow Icon={MapPin} label={t('Address')}>
-                  <span className="text-sm text-[#0A0A0A] leading-snug">{company.address}</span>
+                  <span className="text-sm text-[#1A1A1A] leading-snug">{company.address}</span>
                 </InfoRow>
               </div>
             </div>
           </section>
 
+          <AdminNotes storageKey={`company-${company.id}`} seedNotes={seedNotes} />
+          </div>
+
           <div className="space-y-4">
-            <section className="bg-white border border-[#E4E4E7] rounded-md shadow-none overflow-hidden">
-              <div className="px-6 py-4 border-b border-[#F4F4F5]">
-                <h2 className="text-base font-semibold text-[#0A0A0A]">{t('Plan summary')}</h2>
+            <section className="bg-white border border-[#E3E3E3] rounded-md shadow-none overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#F3F3F3]">
+                <h2 className="text-base font-medium text-[#1A1A1A]">{t('Plan summary')}</h2>
               </div>
               <div className="px-6 py-5 space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="text-xs text-[#71717A]">{t('Current plan')}</div>
+                    <div className="text-xs text-[#8A8A8A]">{t('Current plan')}</div>
                     <div className="mt-1 inline-flex">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium tracking-wide rounded-full ${getPlanStyles(company.plan)}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium rounded-full ${getPlanStyles(company.plan)}`}>
                         {t(company.plan)}
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-[#71717A]">{t('Renews')}</div>
-                    <div className="text-sm font-medium text-[#0A0A0A] tabular-nums mt-1">
+                    <div className="text-xs text-[#8A8A8A]">{t('Renews')}</div>
+                    <div className="text-sm font-medium text-[#1A1A1A] tabular-nums mt-1">
                       {format(new Date(company.renewalDate), 'MMM d, yyyy')}
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => setActiveTab('billing')}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[#0A0A0A] bg-white border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[#1A1A1A] bg-white border border-[#E3E3E3] rounded-md hover:bg-[#F3F3F3] transition-colors cursor-pointer"
                 >
-                  <CreditCard className="w-4 h-4 text-[#71717A]" />
+                  <CreditCard className="w-4 h-4 text-[#8A8A8A]" />
                   {t('Manage billing')}
                 </button>
               </div>
             </section>
 
-            <section className="bg-white border border-[#E4E4E7] rounded-md shadow-none overflow-hidden">
-              <div className="px-6 py-4 border-b border-[#F4F4F5]">
-                <h2 className="text-base font-semibold text-[#0A0A0A]">{t('Activity')}</h2>
-                <p className="text-xs text-[#71717A] mt-0.5">{t('Recent account events')}</p>
+            <section className="bg-white border border-[#E3E3E3] rounded-md shadow-none overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#F3F3F3]">
+                <h2 className="text-base font-medium text-[#1A1A1A]">{t('Activity')}</h2>
+                <p className="text-xs text-[#8A8A8A] mt-0.5">{t('Recent account events')}</p>
               </div>
               <ol className="px-6 py-5 space-y-5">
                 {company.activity.map((event, i) => {
@@ -452,11 +514,11 @@ export default function CompanyDetail() {
                         <Icon className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-[#0A0A0A]">{t(event.label)}</div>
+                        <div className="text-sm font-medium text-[#1A1A1A]">{t(event.label)}</div>
                         {event.detail && (
-                          <div className="text-xs text-[#71717A] mt-0.5">{t(event.detail)}</div>
+                          <div className="text-xs text-[#8A8A8A] mt-0.5">{t(event.detail)}</div>
                         )}
-                        <div className="text-xs text-[#71717A] mt-1 tabular-nums">
+                        <div className="text-xs text-[#8A8A8A] mt-1 tabular-nums">
                           {format(new Date(event.date), 'MMM d, yyyy')}
                         </div>
                       </div>
@@ -477,12 +539,12 @@ export default function CompanyDetail() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="bg-white border border-[#E4E4E7] rounded-md shadow-none overflow-hidden"
+          className="bg-white border border-[#E3E3E3] rounded-md shadow-none overflow-hidden"
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#F4F4F5]">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3F3F3]">
             <div>
-              <h2 className="text-base font-semibold text-[#0A0A0A]">{t('Recent surveys')}</h2>
-              <p className="text-xs text-[#71717A] mt-0.5">
+              <h2 className="text-base font-medium text-[#1A1A1A]">{t('Recent surveys')}</h2>
+              <p className="text-xs text-[#8A8A8A] mt-0.5">
                 {t('Surveys run by this company')}
               </p>
             </div>
@@ -493,9 +555,9 @@ export default function CompanyDetail() {
               {t('View all')}
             </button>
           </div>
-          <div className="divide-y divide-[#F4F4F5]">
+          <div className="divide-y divide-[#F3F3F3]">
             {companySurveys.length === 0 ? (
-              <div className="px-6 py-10 text-center text-sm text-[#71717A]">
+              <div className="px-6 py-10 text-center text-sm text-[#8A8A8A]">
                 {t('No surveys yet for this company.')}
               </div>
             ) : companySurveys.map((survey) => {
@@ -511,27 +573,27 @@ export default function CompanyDetail() {
                 >
                   <div className="flex items-start justify-between gap-4 mb-2">
                     <div className="min-w-0">
-                      <div className="font-medium text-sm text-[#0A0A0A] truncate">
+                      <div className="font-medium text-sm text-[#1A1A1A] truncate">
                         {survey.title}
                       </div>
-                      <div className="text-xs text-[#71717A] mt-0.5">
+                      <div className="text-xs text-[#8A8A8A] mt-0.5">
                         {t(survey.category)} · {formatMnt(survey.rewardMnt)} {t('per response')}
                       </div>
                     </div>
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium tracking-wide rounded-full ${getSurveyStatusStyles(survey.status)} shrink-0`}
+                      className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium rounded-full ${getSurveyStatusStyles(survey.status)} shrink-0`}
                     >
                       {t(survey.status)}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="relative flex-1 h-1.5 bg-[#F4F4F5] rounded-full overflow-hidden">
+                    <div className="relative flex-1 h-1.5 bg-[#F3F3F3] rounded-full overflow-hidden">
                       <div
                         className="absolute inset-y-0 left-0 bg-[#FF3C21] rounded-full"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-xs font-medium text-[#52525B] tabular-nums shrink-0">
+                    <span className="text-xs font-medium text-[#4A4A4A] tabular-nums shrink-0">
                       {survey.responsesCurrent}/{survey.responsesTarget}
                     </span>
                   </div>
@@ -542,6 +604,113 @@ export default function CompanyDetail() {
         </motion.section>
       )}
 
+      {/* Reports tab */}
+      {activeTab === 'reports' && (
+        <motion.section
+          key="reports"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="bg-white border border-[#E3E3E3] rounded-md shadow-none overflow-hidden"
+        >
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3F3F3]">
+            <div>
+              <h2 className="text-base font-medium text-[#1A1A1A]">{t('Reports against this company')}</h2>
+              <p className="text-xs text-[#8A8A8A] mt-0.5">
+                {openReportsCount > 0
+                  ? `${openReportsCount} ${t('open')} · ${companyReports.length - openReportsCount} ${t('resolved')}`
+                  : t('No open reports')}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate(`/reports?companyId=${company.id}`)}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#FF3C21] hover:text-[#E63419] transition-colors cursor-pointer"
+            >
+              {t('Open in Reports queue')}
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          {companyReports.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <div className="w-10 h-10 rounded-full bg-[#F3F3F3] flex items-center justify-center mx-auto mb-3">
+                <ShieldAlert className="w-4 h-4 text-[#8A8A8A]" />
+              </div>
+              <div className="text-sm font-medium text-[#1A1A1A]">{t('No reports')}</div>
+              <div className="text-xs text-[#8A8A8A] mt-1">
+                {t('Respondents have not flagged this company yet.')}
+              </div>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#F3F3F3]">
+              {companyReports.map((r) => {
+                const statusStyle = getReportStatusStyles(r.status);
+                const sevStyle = getReportSeverityStyles(r.severity);
+                return (
+                  <article key={r.id} className="px-6 py-5">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-medium rounded-full ${statusStyle.badge}`}>
+                          <statusStyle.Icon className="w-3 h-3" />
+                          {t(r.status)}
+                        </span>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-medium rounded-full ${sevStyle.badge}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${sevStyle.dot}`} />
+                          {t(r.severity)}
+                        </span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium rounded-full ${getReportReasonStyles(r.reason)}`}>
+                          {t(r.reason)}
+                        </span>
+                      </div>
+                      <span
+                        className="text-xs text-[#8A8A8A] tabular-nums shrink-0"
+                        title={format(new Date(r.submittedAt), 'MMM d, yyyy HH:mm')}
+                      >
+                        {formatDistanceToNow(new Date(r.submittedAt), { addSuffix: true })}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-[#1A1A1A] leading-relaxed">{r.description}</p>
+
+                    <div className="mt-3 flex items-center gap-3 flex-wrap text-xs text-[#8A8A8A]">
+                      <button
+                        onClick={() => navigate(`/respondents/${r.respondentId.toLowerCase()}`)}
+                        className="inline-flex items-center gap-1.5 hover:text-[#1A1A1A] transition-colors cursor-pointer"
+                      >
+                        <div className="w-5 h-5 rounded-full bg-[#F3F3F3] text-[#4A4A4A] flex items-center justify-center text-[10px] font-medium">
+                          {r.respondentInitial}
+                        </div>
+                        {r.respondentName}
+                      </button>
+                      {r.surveyTitle && r.surveyId && (
+                        <>
+                          <span className="text-[#D4D4D4]">·</span>
+                          <button
+                            onClick={() => navigate(`/surveys/${r.surveyId!.toLowerCase()}`)}
+                            className="inline-flex items-center gap-1.5 hover:text-[#1A1A1A] transition-colors cursor-pointer"
+                          >
+                            <ClipboardList className="w-3.5 h-3.5" />
+                            {r.surveyTitle}
+                          </button>
+                        </>
+                      )}
+                      {r.resolution && (
+                        <>
+                          <span className="text-[#D4D4D4]">·</span>
+                          <span className="inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            {t('Outcome')}: {t(r.resolution)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </motion.section>
+      )}
+
       {/* Billing tab */}
       {activeTab === 'billing' && (
         <motion.section
@@ -549,53 +718,53 @@ export default function CompanyDetail() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="bg-white border border-[#E4E4E7] rounded-md shadow-none overflow-hidden"
+          className="bg-white border border-[#E3E3E3] rounded-md shadow-none overflow-hidden"
         >
-          <div className="px-6 py-4 border-b border-[#F4F4F5]">
-            <h2 className="text-base font-semibold text-[#0A0A0A]">{t('Plan & billing')}</h2>
-            <p className="text-xs text-[#71717A] mt-0.5">
+          <div className="px-6 py-4 border-b border-[#F3F3F3]">
+            <h2 className="text-base font-medium text-[#1A1A1A]">{t('Plan & billing')}</h2>
+            <p className="text-xs text-[#8A8A8A] mt-0.5">
               {t('Subscription, balance, and lifetime spend')}
             </p>
           </div>
           <div className="px-6 py-5 space-y-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-xs text-[#71717A]">{t('Current plan')}</div>
+                <div className="text-xs text-[#8A8A8A]">{t('Current plan')}</div>
                 <div className="mt-1 inline-flex">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium tracking-wide rounded-full ${getPlanStyles(company.plan)}`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium rounded-full ${getPlanStyles(company.plan)}`}>
                     {t(company.plan)}
                   </span>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xs text-[#71717A]">{t('Renews')}</div>
-                <div className="text-sm font-medium text-[#0A0A0A] tabular-nums mt-1">
+                <div className="text-xs text-[#8A8A8A]">{t('Renews')}</div>
+                <div className="text-sm font-medium text-[#1A1A1A] tabular-nums mt-1">
                   {format(new Date(company.renewalDate), 'MMM d, yyyy')}
                 </div>
               </div>
             </div>
 
-            <div className="h-px bg-[#F4F4F5]" />
+            <div className="h-px bg-[#F3F3F3]" />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex items-center gap-3 p-4 bg-[#FAFAFA] rounded-md">
-                <div className="w-9 h-9 rounded-md bg-white flex items-center justify-center text-[#52525B] border border-[#E4E4E7]">
+                <div className="w-9 h-9 rounded-md bg-white flex items-center justify-center text-[#4A4A4A] border border-[#E3E3E3]">
                   <Wallet className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs text-[#71717A]">{t('Credit balance')}</div>
-                  <div className="text-base font-semibold text-[#0A0A0A] tabular-nums">
+                  <div className="text-xs text-[#8A8A8A]">{t('Credit balance')}</div>
+                  <div className="text-base font-medium text-[#1A1A1A] tabular-nums">
                     {formatMnt(company.creditsBalanceMnt)}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-4 bg-[#FAFAFA] rounded-md">
-                <div className="w-9 h-9 rounded-md bg-white flex items-center justify-center text-[#52525B] border border-[#E4E4E7]">
+                <div className="w-9 h-9 rounded-md bg-white flex items-center justify-center text-[#4A4A4A] border border-[#E3E3E3]">
                   <TrendingUp className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs text-[#71717A]">{t('Lifetime spend')}</div>
-                  <div className="text-base font-semibold text-[#0A0A0A] tabular-nums">
+                  <div className="text-xs text-[#8A8A8A]">{t('Lifetime spend')}</div>
+                  <div className="text-base font-medium text-[#1A1A1A] tabular-nums">
                     {formatMnt(company.totalSpentMnt)}
                   </div>
                 </div>
@@ -604,9 +773,9 @@ export default function CompanyDetail() {
 
             <button
               onClick={() => setIsBillingHistoryOpen(true)}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[#0A0A0A] bg-white border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[#1A1A1A] bg-white border border-[#E3E3E3] rounded-md hover:bg-[#F3F3F3] transition-colors cursor-pointer"
             >
-              <CreditCard className="w-4 h-4 text-[#71717A]" />
+              <CreditCard className="w-4 h-4 text-[#8A8A8A]" />
               {t('View billing history')}
             </button>
           </div>
@@ -626,7 +795,7 @@ export default function CompanyDetail() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#0A0A0A]/30 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-[#1A1A1A]/30 flex items-center justify-center z-50 p-4"
             onClick={() => setConfirming(null)}
           >
             <motion.div
@@ -634,28 +803,28 @@ export default function CompanyDetail() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               transition={{ type: 'spring', duration: 0.3 }}
-              className="bg-white rounded-md w-full max-w-sm shadow-none border border-[#F4F4F5] flex flex-col overflow-hidden"
+              className="bg-white rounded-md w-full max-w-sm shadow-none border border-[#F3F3F3] flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-[#F4F4F5]">
-                <h2 className="text-lg font-semibold text-[#0A0A0A]">{actionMeta.title}</h2>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3F3F3]">
+                <h2 className="text-lg font-medium text-[#1A1A1A]">{actionMeta.title}</h2>
                 <button
                   onClick={() => setConfirming(null)}
-                  className="text-[#71717A] hover:text-[#0A0A0A] hover:bg-[#F4F4F5] rounded-md transition-colors p-1 cursor-pointer"
+                  className="text-[#8A8A8A] hover:text-[#1A1A1A] hover:bg-[#F3F3F3] rounded-md transition-colors p-1 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="p-6">
-                <p className="text-[#52525B] text-sm leading-relaxed">{actionMeta.description}</p>
-                <div className="mt-3 p-3 bg-white border border-[#E4E4E7] rounded-md flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-semibold shrink-0">
+                <p className="text-[#4A4A4A] text-sm leading-relaxed">{actionMeta.description}</p>
+                <div className="mt-3 p-3 bg-white border border-[#E3E3E3] rounded-md flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-medium shrink-0">
                     {company.initial}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-medium text-[#0A0A0A] text-sm truncate">{company.name}</div>
-                    <div className="text-[#71717A] text-xs truncate">{company.email}</div>
+                    <div className="font-medium text-[#1A1A1A] text-sm truncate">{company.name}</div>
+                    <div className="text-[#8A8A8A] text-xs truncate">{company.email}</div>
                   </div>
                 </div>
                 {actionMeta.tone === 'danger' && (
@@ -666,10 +835,10 @@ export default function CompanyDetail() {
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#F4F4F5]">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#F3F3F3]">
                 <button
                   onClick={() => setConfirming(null)}
-                  className="px-4 py-2 text-sm font-medium text-[#52525B] bg-white border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors cursor-pointer"
+                  className="px-4 py-2 text-sm font-medium text-[#4A4A4A] bg-white border border-[#E3E3E3] rounded-md hover:bg-[#F3F3F3] transition-colors cursor-pointer"
                 >
                   {t('Cancel')}
                 </button>
@@ -703,11 +872,11 @@ function InfoRow({
 }) {
   return (
     <div className="flex gap-3">
-      <div className="w-8 h-8 rounded-md bg-[#F4F4F5] flex items-center justify-center text-[#52525B] shrink-0 mt-0.5">
+      <div className="w-8 h-8 rounded-md bg-[#F3F3F3] flex items-center justify-center text-[#4A4A4A] shrink-0 mt-0.5">
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs text-[#71717A] mb-0.5">{label}</div>
+        <div className="text-xs text-[#8A8A8A] mb-0.5">{label}</div>
         {children}
       </div>
     </div>
@@ -798,9 +967,9 @@ function buildCreditTransactions(company: Company): CreditTx[] {
 
 function getInvoiceStatusStyles(status: InvoiceStatus) {
   switch (status) {
-    case 'Paid':     return 'bg-[#ECFDF5] text-[#047857] border border-[#D1FAE5]';
-    case 'Upcoming': return 'bg-[#EFF6FF] text-[#1D4ED8] border border-[#DBEAFE]';
-    case 'Overdue':  return 'bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA]';
+    case 'Paid':     return 'bg-[#ECFDF5] text-[#047857]';
+    case 'Upcoming': return 'bg-[#EFF6FF] text-[#1D4ED8]';
+    case 'Overdue':  return 'bg-[#FEF2F2] text-[#B91C1C]';
   }
 }
 
@@ -819,21 +988,21 @@ function BillingHistoryDrawer({
 
   return (
     <Drawer direction="right" open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="!max-w-lg data-[vaul-drawer-direction=right]:sm:!max-w-lg bg-white border-l border-[#E4E4E7] p-0">
+      <DrawerContent className="!max-w-lg data-[vaul-drawer-direction=right]:sm:!max-w-lg bg-white border-l border-[#E3E3E3] p-0">
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-[#F4F4F5] flex items-start justify-between gap-3 shrink-0">
+          <div className="px-6 py-4 border-b border-[#F3F3F3] flex items-start justify-between gap-3 shrink-0">
             <div className="min-w-0">
-              <DrawerTitle className="text-base font-semibold text-[#0A0A0A]">
+              <DrawerTitle className="text-base font-medium text-[#1A1A1A]">
                 {t('Billing history')}
               </DrawerTitle>
-              <DrawerDescription className="text-sm text-[#71717A] mt-0.5 truncate">
+              <DrawerDescription className="text-sm text-[#8A8A8A] mt-0.5 truncate">
                 {company.name} · {t(company.plan)}
               </DrawerDescription>
             </div>
             <button
               onClick={() => onOpenChange(false)}
-              className="p-1 text-[#71717A] hover:text-[#0A0A0A] hover:bg-[#F4F4F5] rounded-md transition-colors cursor-pointer shrink-0"
+              className="p-1 text-[#8A8A8A] hover:text-[#1A1A1A] hover:bg-[#F3F3F3] rounded-md transition-colors cursor-pointer shrink-0"
               aria-label={t('Close')}
             >
               <X className="w-5 h-5" />
@@ -841,16 +1010,16 @@ function BillingHistoryDrawer({
           </div>
 
           {/* Summary strip */}
-          <div className="px-6 py-4 border-b border-[#F4F4F5] grid grid-cols-2 gap-3 shrink-0">
+          <div className="px-6 py-4 border-b border-[#F3F3F3] grid grid-cols-2 gap-3 shrink-0">
             <div className="p-3 bg-[#FAFAFA] rounded-md">
-              <div className="text-xs text-[#71717A]">{t('Credit balance')}</div>
-              <div className="text-lg font-semibold text-[#0A0A0A] tabular-nums mt-1">
+              <div className="text-xs text-[#8A8A8A]">{t('Credit balance')}</div>
+              <div className="text-lg font-medium text-[#1A1A1A] tabular-nums mt-1">
                 {formatMnt(company.creditsBalanceMnt)}
               </div>
             </div>
             <div className="p-3 bg-[#FAFAFA] rounded-md">
-              <div className="text-xs text-[#71717A]">{t('Lifetime spend')}</div>
-              <div className="text-lg font-semibold text-[#0A0A0A] tabular-nums mt-1">
+              <div className="text-xs text-[#8A8A8A]">{t('Lifetime spend')}</div>
+              <div className="text-lg font-medium text-[#1A1A1A] tabular-nums mt-1">
                 {formatMnt(company.totalSpentMnt)}
               </div>
             </div>
@@ -861,41 +1030,41 @@ function BillingHistoryDrawer({
             {/* Invoices */}
             <section className="px-6 py-5">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-[#0A0A0A]">{t('Invoices')}</h3>
-                <span className="text-xs text-[#71717A] tabular-nums">{invoices.length}</span>
+                <h3 className="text-sm font-medium text-[#1A1A1A]">{t('Invoices')}</h3>
+                <span className="text-xs text-[#8A8A8A] tabular-nums">{invoices.length}</span>
               </div>
-              <div className="border border-[#E4E4E7] rounded-md overflow-hidden">
+              <div className="border border-[#E3E3E3] rounded-md overflow-hidden">
                 {invoices.map((inv, i) => (
                   <div
                     key={inv.id}
                     className={`flex items-center gap-3 px-4 py-3 ${
-                      i < invoices.length - 1 ? 'border-b border-[#F4F4F5]' : ''
+                      i < invoices.length - 1 ? 'border-b border-[#F3F3F3]' : ''
                     } hover:bg-[#FAFAFA] transition-colors`}
                   >
-                    <div className="w-9 h-9 rounded-md bg-[#F4F4F5] flex items-center justify-center text-[#52525B] shrink-0">
+                    <div className="w-9 h-9 rounded-md bg-[#F3F3F3] flex items-center justify-center text-[#4A4A4A] shrink-0">
                       <FileText className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <div className="text-sm font-medium text-[#0A0A0A] truncate">
+                        <div className="text-sm font-medium text-[#1A1A1A] truncate">
                           {inv.id}
                         </div>
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 text-[10px] font-medium tracking-wide rounded-full ${getInvoiceStatusStyles(inv.status)}`}
+                          className={`inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full ${getInvoiceStatusStyles(inv.status)}`}
                         >
                           {t(inv.status)}
                         </span>
                       </div>
-                      <div className="text-xs text-[#71717A] mt-0.5 truncate">
+                      <div className="text-xs text-[#8A8A8A] mt-0.5 truncate">
                         {inv.periodLabel} · {inv.method}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-sm font-semibold text-[#0A0A0A] tabular-nums">
+                      <div className="text-sm font-medium text-[#1A1A1A] tabular-nums">
                         {formatMnt(inv.amountMnt)}
                       </div>
                       <button
-                        className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#52525B] hover:text-[#FF3C21] transition-colors cursor-pointer"
+                        className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#4A4A4A] hover:text-[#FF3C21] transition-colors cursor-pointer"
                         title={t('Download')}
                       >
                         <Download className="w-3 h-3" />
@@ -907,13 +1076,13 @@ function BillingHistoryDrawer({
               </div>
             </section>
 
-            <div className="h-px bg-[#F4F4F5] mx-6" />
+            <div className="h-px bg-[#F3F3F3] mx-6" />
 
             {/* Credit transactions */}
             <section className="px-6 py-5">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-[#0A0A0A]">{t('Credit transactions')}</h3>
-                <span className="text-xs text-[#71717A] tabular-nums">{transactions.length}</span>
+                <h3 className="text-sm font-medium text-[#1A1A1A]">{t('Credit transactions')}</h3>
+                <span className="text-xs text-[#8A8A8A] tabular-nums">{transactions.length}</span>
               </div>
               <ol className="space-y-3">
                 {transactions.map((tx, i) => {
@@ -927,19 +1096,19 @@ function BillingHistoryDrawer({
                       ? Sparkles
                       : ArrowUpRight;
                   return (
-                    <li key={i} className="flex gap-3 p-3 bg-white border border-[#F4F4F5] rounded-md">
+                    <li key={i} className="flex gap-3 p-3 bg-white border border-[#F3F3F3] rounded-md">
                       <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${toneIcon}`}>
                         <Icon className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-[#0A0A0A]">{t(tx.label)}</div>
-                        <div className="text-xs text-[#71717A] mt-0.5 truncate">{t(tx.detail)}</div>
-                        <div className="text-xs text-[#71717A] mt-1 tabular-nums">
+                        <div className="text-sm font-medium text-[#1A1A1A]">{t(tx.label)}</div>
+                        <div className="text-xs text-[#8A8A8A] mt-0.5 truncate">{t(tx.detail)}</div>
+                        <div className="text-xs text-[#8A8A8A] mt-1 tabular-nums">
                           {format(new Date(tx.date), 'MMM d, yyyy')}
                         </div>
                       </div>
                       <div
-                        className={`text-sm font-semibold tabular-nums shrink-0 ${
+                        className={`text-sm font-medium tabular-nums shrink-0 ${
                           isIncoming ? 'text-[#047857]' : 'text-[#B91C1C]'
                         }`}
                       >
@@ -954,10 +1123,10 @@ function BillingHistoryDrawer({
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-[#F4F4F5] bg-white shrink-0 flex items-center gap-2">
+          <div className="px-6 py-4 border-t border-[#F3F3F3] bg-white shrink-0 flex items-center gap-2">
             <button
               onClick={() => onOpenChange(false)}
-              className="flex-1 px-4 py-2 text-sm font-medium text-[#52525B] bg-white border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors cursor-pointer"
+              className="flex-1 px-4 py-2 text-sm font-medium text-[#4A4A4A] bg-white border border-[#E3E3E3] rounded-md hover:bg-[#F3F3F3] transition-colors cursor-pointer"
             >
               {t('Close')}
             </button>

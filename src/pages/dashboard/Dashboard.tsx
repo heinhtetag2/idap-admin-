@@ -12,9 +12,11 @@ import {
   Wallet,
   ArrowRight,
   CheckCircle2,
-  Clock,
   AlertTriangle,
+  Ban,
+  Receipt,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { BrandSelect } from '@/shared/ui/brand-select';
 import {
   AreaChart,
@@ -28,8 +30,6 @@ import {
   Bar,
   Cell,
 } from 'recharts';
-import { formatDistanceToNow } from 'date-fns';
-
 import { DEMO_SURVEYS } from '@/pages/surveys/survey-data';
 import { DEMO_COMPANIES } from '@/pages/companies/company-data';
 import { DEMO_RESPONDENTS } from '@/pages/respondents/respondent-data';
@@ -172,14 +172,93 @@ export default function Dashboard() {
     },
   ];
 
-  const pendingCompanies = DEMO_COMPANIES.filter((c) => c.status === 'Pending').slice(0, 3);
-  const pendingPayouts = DEMO_PAYOUTS.filter((p) => p.status === 'Pending').slice(0, 3);
-
   // Top companies by lifetime spend
   const topCompanies = [...DEMO_COMPANIES]
     .filter((c) => c.status === 'Approved')
     .sort((a, b) => b.totalSpentMnt - a.totalSpentMnt)
     .slice(0, 5);
+
+  // Top respondents by lifetime earnings
+  const topRespondents = [...DEMO_RESPONDENTS]
+    .filter((r) => r.status === 'Active')
+    .sort((a, b) => b.earnedMnt - a.earnedMnt)
+    .slice(0, 5);
+
+  // Platform activity feed — blended across surveys, payouts, companies, respondents
+  type FeedEvent = {
+    kind: 'company-applied' | 'company-approved' | 'payout-released' | 'survey-rejected' | 'respondent-warned';
+    date: string;
+    primary: string;
+    secondary: string;
+    amount?: number;
+    href?: string;
+  };
+
+  const activityFeed: FeedEvent[] = [
+    ...DEMO_COMPANIES
+      .filter((c) => c.status === 'Pending')
+      .slice(0, 2)
+      .map((c) => ({
+        kind: 'company-applied' as const,
+        date: c.joined,
+        primary: c.name,
+        secondary: `${c.plan} · ${c.industry}`,
+        href: `/companies/${c.id.toLowerCase()}`,
+      })),
+    ...DEMO_COMPANIES
+      .filter((c) => c.status === 'Approved')
+      .slice(0, 2)
+      .map((c) => ({
+        kind: 'company-approved' as const,
+        date: c.joined,
+        primary: c.name,
+        secondary: t('Application approved'),
+        href: `/companies/${c.id.toLowerCase()}`,
+      })),
+    ...DEMO_PAYOUTS
+      .filter((p) => p.status === 'Completed')
+      .slice(0, 3)
+      .map((p) => ({
+        kind: 'payout-released' as const,
+        date: p.requestedAt,
+        primary: p.respondentName,
+        secondary: `${p.gateway} · ${t('released')}`,
+        amount: p.amountMnt,
+        href: `/respondents/${p.respondentId.toLowerCase()}`,
+      })),
+    ...DEMO_SURVEYS
+      .filter((s) => s.status === 'Rejected')
+      .slice(0, 2)
+      .map((s) => ({
+        kind: 'survey-rejected' as const,
+        date: s.createdAt,
+        primary: s.title,
+        secondary: `${s.companyName} · ${t('rejected in moderation')}`,
+        href: `/surveys/${s.id.toLowerCase()}`,
+      })),
+    ...DEMO_RESPONDENTS
+      .filter((r) => r.status === 'Warned')
+      .slice(0, 2)
+      .map((r) => ({
+        kind: 'respondent-warned' as const,
+        date: r.lastActive,
+        primary: r.name,
+        secondary: `${r.warnings} ${t('warnings')} · ${t('Quality')} ${r.qualityScore}%`,
+        href: `/respondents/${r.id.toLowerCase()}`,
+      })),
+  ]
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+    .slice(0, 6);
+
+  const feedIcon = (kind: FeedEvent['kind']) => {
+    switch (kind) {
+      case 'company-applied':    return { Icon: Building2,     tone: 'bg-[#FFFBEB] text-[#B45309]' };
+      case 'company-approved':   return { Icon: CheckCircle2,  tone: 'bg-[#ECFDF5] text-[#047857]' };
+      case 'payout-released':    return { Icon: Receipt,       tone: 'bg-[#EFF6FF] text-[#1D4ED8]' };
+      case 'survey-rejected':    return { Icon: Ban,           tone: 'bg-[#FEF2F2] text-[#B91C1C]' };
+      case 'respondent-warned':  return { Icon: AlertTriangle, tone: 'bg-[#FFFBEB] text-[#B45309]' };
+    }
+  };
 
   return (
     <motion.div
@@ -191,8 +270,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex justify-between items-center mb-8 gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-serif text-[#0A0A0A]">{t('Platform Dashboard')}</h1>
-          <p className="text-sm text-[#71717A] mt-1">
+          <h1 className="text-3xl font-serif text-[#1A1A1A]">{t('Platform Dashboard')}</h1>
+          <p className="text-sm text-[#8A8A8A] mt-1">
             {t('Overview of companies, surveys, respondents, and payouts across the platform.')}
           </p>
         </div>
@@ -221,15 +300,15 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: i * 0.08 }}
-            className="text-left bg-white border border-[#E4E4E7] rounded-md p-5 flex flex-col justify-center shadow-none hover:border-[#D4D4D8] transition-colors group cursor-pointer"
+            className="text-left bg-white border border-[#E3E3E3] rounded-md p-5 flex flex-col justify-center shadow-none hover:border-[#FFDED5] transition-colors group cursor-pointer"
           >
             <div className="flex justify-between items-start mb-4">
-              <span className="text-sm font-medium text-[#71717A]">{t(stat.title)}</span>
-              <div className="p-2 bg-[#F4F4F5] rounded-md text-[#52525B] group-hover:bg-[#FF3C21] group-hover:text-white transition-colors">
+              <span className="text-sm font-medium text-[#8A8A8A]">{t(stat.title)}</span>
+              <div className="p-2 bg-[#F3F3F3] rounded-md text-[#4A4A4A] group-hover:bg-[#FF3C21] group-hover:text-white transition-colors">
                 <stat.Icon className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-semibold text-[#0A0A0A] tabular-nums">{stat.value}</div>
+            <div className="text-2xl font-semibold text-[#1A1A1A] tabular-nums">{stat.value}</div>
             <div className="text-xs flex items-center gap-1.5 font-medium mt-2">
               {stat.trend && (
                 <>
@@ -239,142 +318,19 @@ export default function Dashboard() {
                         ? 'text-[#047857] flex items-center gap-0.5'
                         : stat.tone === 'warning'
                           ? 'text-[#B45309]'
-                          : 'text-[#52525B]'
+                          : 'text-[#4A4A4A]'
                     }
                   >
                     {stat.tone === 'positive' && <ArrowUpRight className="w-3 h-3" />}
                     {stat.trend}
                   </span>
-                  <span className="text-[#D4D4D8]">•</span>
+                  <span className="text-[#D4D4D4]">•</span>
                 </>
               )}
-              <span className="text-[#71717A] font-normal">{t(stat.subtitle)}</span>
+              <span className="text-[#8A8A8A] font-normal">{t(stat.subtitle)}</span>
             </div>
           </motion.button>
         ))}
-      </div>
-
-      {/* Moderation queue */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Pending companies */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-          className="bg-white border border-[#E4E4E7] rounded-md shadow-none overflow-hidden"
-        >
-          <div className="px-6 pt-5 pb-4 flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-[#FFFBEB] text-[#B45309] rounded-md shrink-0">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-[#0A0A0A]">
-                  {t('Companies awaiting review')}
-                </h2>
-                <p className="text-xs text-[#71717A] mt-0.5">
-                  {platformStats.pendingCompanies} {t('pending applications')}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/companies')}
-              className="flex items-center gap-1 text-xs font-medium text-[#FF3C21] hover:text-[#E63419] transition-colors cursor-pointer shrink-0"
-            >
-              {t('Review all')}
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="divide-y divide-[#F4F4F5] border-t border-[#F4F4F5]">
-            {pendingCompanies.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-[#71717A]">
-                {t('Nothing pending. All caught up.')}
-              </div>
-            ) : pendingCompanies.map((company) => (
-              <button
-                key={company.id}
-                onClick={() => navigate(`/companies/${company.id.toLowerCase()}`)}
-                className="w-full flex items-center gap-3 px-6 py-3.5 text-left hover:bg-[#FAFAFA] transition-colors cursor-pointer group"
-              >
-                <div className="w-9 h-9 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-semibold shrink-0">
-                  {company.initial}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm text-[#0A0A0A] truncate">
-                    {company.name}
-                  </div>
-                  <div className="text-xs text-[#71717A] mt-0.5 truncate">
-                    {company.plan} · {company.industry}
-                  </div>
-                </div>
-                <span className="text-xs text-[#71717A] tabular-nums hidden sm:inline">
-                  {formatDistanceToNow(new Date(company.joined), { addSuffix: true })}
-                </span>
-                <ArrowRight className="w-4 h-4 text-[#A1A1AA] group-hover:text-[#52525B] transition-colors" />
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Pending payouts */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.4 }}
-          className="bg-white border border-[#E4E4E7] rounded-md shadow-none overflow-hidden"
-        >
-          <div className="px-6 pt-5 pb-4 flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-[#FFF1EE] text-[#FF3C21] rounded-md shrink-0">
-                <Wallet className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-[#0A0A0A]">{t('Pending payouts')}</h2>
-                <p className="text-xs text-[#71717A] mt-0.5">
-                  {formatMntCompact(platformStats.pendingPayoutAmount)} {t('awaiting release')}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/payouts')}
-              className="flex items-center gap-1 text-xs font-medium text-[#FF3C21] hover:text-[#E63419] transition-colors cursor-pointer shrink-0"
-            >
-              {t('Release all')}
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="divide-y divide-[#F4F4F5] border-t border-[#F4F4F5]">
-            {pendingPayouts.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-[#71717A]">
-                {t('No payouts waiting.')}
-              </div>
-            ) : pendingPayouts.map((payout) => (
-              <button
-                key={payout.id}
-                onClick={() => navigate('/payouts')}
-                className="w-full flex items-center gap-3 px-6 py-3.5 text-left hover:bg-[#FAFAFA] transition-colors cursor-pointer group"
-              >
-                <div className="w-9 h-9 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-semibold shrink-0">
-                  {payout.initial}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm text-[#0A0A0A] truncate">
-                    {payout.respondentName}
-                  </div>
-                  <div className="text-xs text-[#71717A] mt-0.5 truncate">
-                    {payout.gateway} · {payout.account}
-                  </div>
-                </div>
-                <div className="text-sm font-semibold text-[#0A0A0A] tabular-nums shrink-0">
-                  {formatMntExact(payout.amountMnt)}
-                </div>
-                <ArrowRight className="w-4 h-4 text-[#A1A1AA] group-hover:text-[#52525B] transition-colors" />
-              </button>
-            ))}
-          </div>
-        </motion.div>
       </div>
 
       {/* Charts */}
@@ -384,19 +340,19 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.5 }}
-          className="bg-white border border-[#E4E4E7] rounded-md p-6 shadow-none"
+          className="bg-white border border-[#E3E3E3] rounded-md p-6 shadow-none"
         >
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-base font-semibold text-[#0A0A0A]">
+              <h2 className="text-base font-medium text-[#1A1A1A]">
                 {t('Response volume')}
               </h2>
-              <p className="text-xs text-[#71717A] mt-0.5">
+              <p className="text-xs text-[#8A8A8A] mt-0.5">
                 {t('All surveys')} {t(range.subtitle)}
               </p>
             </div>
             <div className="text-right">
-              <div className="text-xl font-semibold text-[#0A0A0A] tabular-nums">
+              <div className="text-xl font-semibold text-[#1A1A1A] tabular-nums">
                 {responseTotal.toLocaleString()}
               </div>
               <div
@@ -422,15 +378,15 @@ export default function Dashboard() {
                     <stop offset="95%" stopColor="#FF3C21" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F4F4F5" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717A' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717A' }} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F3F3" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8A8A8A' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8A8A8A' }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0A0A0A', borderRadius: '6px', border: 'none', color: '#fff', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: '#1A1A1A', borderRadius: '6px', border: 'none', color: '#fff', fontSize: '12px' }}
                   itemStyle={{ color: '#fff' }}
-                  labelStyle={{ color: '#A1A1AA' }}
+                  labelStyle={{ color: '#B5B5B5' }}
                   formatter={(value: number) => [`${value.toLocaleString()} responses`, '']}
-                  cursor={{ stroke: '#E4E4E7', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  cursor={{ stroke: '#E3E3E3', strokeWidth: 1, strokeDasharray: '4 4' }}
                 />
                 <Area type="monotone" dataKey="value" stroke="#FF3C21" strokeWidth={2} fillOpacity={1} fill="url(#colorResponses)" isAnimationActive={false} />
               </AreaChart>
@@ -443,17 +399,17 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.6 }}
-          className="bg-white border border-[#E4E4E7] rounded-md p-6 shadow-none"
+          className="bg-white border border-[#E3E3E3] rounded-md p-6 shadow-none"
         >
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-base font-semibold text-[#0A0A0A]">{t('Payout volume')}</h2>
-              <p className="text-xs text-[#71717A] mt-0.5">
+              <h2 className="text-base font-medium text-[#1A1A1A]">{t('Payout volume')}</h2>
+              <p className="text-xs text-[#8A8A8A] mt-0.5">
                 {t('Released to respondents')} {t(range.subtitle)}
               </p>
             </div>
             <div className="text-right">
-              <div className="text-xl font-semibold text-[#0A0A0A] tabular-nums">
+              <div className="text-xl font-semibold text-[#1A1A1A] tabular-nums">
                 {formatMntCompact(payoutTotal)}
               </div>
               <div
@@ -473,21 +429,21 @@ export default function Dashboard() {
           <div className="h-[260px] w-full min-w-0 min-h-0">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={range.payout} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F4F4F5" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717A' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717A' }} tickFormatter={(v: number) => `${v / 1000}K`} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F3F3" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8A8A8A' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8A8A8A' }} tickFormatter={(v: number) => `${v / 1000}K`} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0A0A0A', borderRadius: '6px', border: 'none', color: '#fff', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: '#1A1A1A', borderRadius: '6px', border: 'none', color: '#fff', fontSize: '12px' }}
                   itemStyle={{ color: '#fff' }}
-                  labelStyle={{ color: '#A1A1AA' }}
+                  labelStyle={{ color: '#B5B5B5' }}
                   formatter={(value: number) => [formatMntExact(value), '']}
-                  cursor={{ fill: '#F4F4F5' }}
+                  cursor={{ fill: '#F3F3F3' }}
                 />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                   {range.payout.map((entry, index) => (
                     <Cell
                       key={`cell-${index}-${entry.name}`}
-                      fill={index === range.payout.length - 1 ? '#FF3C21' : '#E4E4E7'}
+                      fill={index === range.payout.length - 1 ? '#FF3C21' : '#E3E3E3'}
                     />
                   ))}
                 </Bar>
@@ -497,57 +453,154 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Top companies */}
+      {/* Platform activity feed */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.7 }}
-        className="bg-white border border-[#E4E4E7] rounded-md shadow-none overflow-hidden"
+        className="bg-white border border-[#E3E3E3] rounded-md shadow-none overflow-hidden mb-6"
       >
-        <div className="px-6 pt-5 pb-4 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold text-[#0A0A0A]">{t('Top companies by spend')}</h2>
-            <p className="text-xs text-[#71717A] mt-0.5">
-              {t('Ranked by lifetime platform spend')}
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/companies')}
-            className="flex items-center gap-1 text-xs font-medium text-[#FF3C21] hover:text-[#E63419] transition-colors cursor-pointer shrink-0"
-          >
-            {t('View all')}
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+        <div className="px-6 pt-5 pb-4">
+          <h2 className="text-base font-medium text-[#1A1A1A]">{t('Recent platform activity')}</h2>
+          <p className="text-xs text-[#8A8A8A] mt-0.5">
+            {t('Latest events across companies, surveys, and payouts')}
+          </p>
         </div>
 
-        <div className="divide-y divide-[#F4F4F5] border-t border-[#F4F4F5]">
-          {topCompanies.map((company) => {
-            const companySurveys = DEMO_SURVEYS.filter((s) => s.companyId === company.id).length;
+        <ol className="divide-y divide-[#F3F3F3] border-t border-[#F3F3F3]">
+          {activityFeed.length === 0 ? (
+            <li className="px-6 py-8 text-center text-sm text-[#8A8A8A]">
+              {t('No recent activity.')}
+            </li>
+          ) : activityFeed.map((event, i) => {
+            const { Icon, tone } = feedIcon(event.kind);
             return (
+              <li key={`${event.kind}-${i}`}>
+                <button
+                  onClick={() => event.href && navigate(event.href)}
+                  className="w-full flex items-center gap-3 px-6 py-3.5 text-left hover:bg-[#FAFAFA] transition-colors cursor-pointer group"
+                >
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${tone}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-[#1A1A1A]">
+                      <span className="font-medium">{event.primary}</span>
+                      <span className="text-[#8A8A8A]"> · {event.secondary}</span>
+                    </div>
+                    <div className="text-xs text-[#8A8A8A] mt-0.5 tabular-nums">
+                      {format(new Date(event.date), 'MMM d, yyyy')}
+                    </div>
+                  </div>
+                  {event.amount !== undefined && (
+                    <div className="text-sm font-medium text-[#1A1A1A] tabular-nums shrink-0">
+                      {formatMntCompact(event.amount)}
+                    </div>
+                  )}
+                  <ArrowRight className="w-4 h-4 text-[#B5B5B5] group-hover:text-[#4A4A4A] transition-colors shrink-0" />
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </motion.div>
+
+      {/* Performance row: Top companies + Top respondents */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 items-start">
+        {/* Top companies */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.8 }}
+          className="bg-white border border-[#E3E3E3] rounded-md shadow-none overflow-hidden"
+        >
+          <div className="px-6 pt-5 pb-4 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-base font-medium text-[#1A1A1A]">{t('Top companies')}</h2>
+              <p className="text-xs text-[#8A8A8A] mt-0.5">
+                {t('Ranked by lifetime platform spend')}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/companies')}
+              className="flex items-center gap-1 text-xs font-medium text-[#FF3C21] hover:text-[#E63419] transition-colors cursor-pointer shrink-0"
+            >
+              {t('View all')}
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="divide-y divide-[#F3F3F3] border-t border-[#F3F3F3]">
+            {topCompanies.map((company) => (
               <button
                 key={company.id}
                 onClick={() => navigate(`/companies/${company.id.toLowerCase()}`)}
-                className="w-full grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-6 px-6 py-4 text-left hover:bg-[#FAFAFA] transition-colors cursor-pointer group"
+                className="w-full flex items-center gap-3 px-6 py-3.5 text-left hover:bg-[#FAFAFA] transition-colors cursor-pointer group"
               >
-                <div className="w-9 h-9 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-semibold shrink-0">
+                <div className="w-9 h-9 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-medium shrink-0">
                   {company.initial}
                 </div>
-                <div className="min-w-0">
-                  <div className="font-medium text-[#0A0A0A] truncate">{company.name}</div>
-                  <div className="text-xs text-[#71717A] mt-0.5">{company.industry}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm text-[#1A1A1A] truncate">{company.name}</div>
+                  <div className="text-xs text-[#8A8A8A] mt-0.5 truncate">{company.industry}</div>
                 </div>
-                <div className="hidden sm:block text-xs text-[#71717A] tabular-nums">
-                  {companySurveys} {t('surveys')}
-                </div>
-                <div className="text-sm font-semibold text-[#0A0A0A] tabular-nums">
+                <div className="text-sm font-medium text-[#1A1A1A] tabular-nums shrink-0">
                   {formatMntCompact(company.totalSpentMnt)}
                 </div>
-                <ArrowRight className="w-4 h-4 text-[#A1A1AA] group-hover:text-[#52525B] transition-colors" />
+                <ArrowRight className="w-4 h-4 text-[#B5B5B5] group-hover:text-[#4A4A4A] transition-colors shrink-0" />
               </button>
-            );
-          })}
-        </div>
-      </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Top respondents */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.75 }}
+          className="bg-white border border-[#E3E3E3] rounded-md shadow-none overflow-hidden"
+        >
+          <div className="px-6 pt-5 pb-4 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-base font-medium text-[#1A1A1A]">{t('Top respondents')}</h2>
+              <p className="text-xs text-[#8A8A8A] mt-0.5">
+                {t('Ranked by lifetime earnings')}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/respondents')}
+              className="flex items-center gap-1 text-xs font-medium text-[#FF3C21] hover:text-[#E63419] transition-colors cursor-pointer shrink-0"
+            >
+              {t('View all')}
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="divide-y divide-[#F3F3F3] border-t border-[#F3F3F3]">
+            {topRespondents.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => navigate(`/respondents/${r.id.toLowerCase()}`)}
+                className="w-full flex items-center gap-3 px-6 py-3.5 text-left hover:bg-[#FAFAFA] transition-colors cursor-pointer group"
+              >
+                <div className="w-9 h-9 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-medium shrink-0">
+                  {r.initial}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm text-[#1A1A1A] truncate">{r.name}</div>
+                  <div className="text-xs text-[#8A8A8A] mt-0.5 truncate">
+                    {r.trustLevel} · {r.surveys} {t('surveys')}
+                  </div>
+                </div>
+                <div className="text-sm font-medium text-[#1A1A1A] tabular-nums shrink-0">
+                  {formatMntCompact(r.earnedMnt)}
+                </div>
+                <ArrowRight className="w-4 h-4 text-[#B5B5B5] group-hover:text-[#4A4A4A] transition-colors shrink-0" />
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }

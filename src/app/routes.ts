@@ -10,11 +10,16 @@ import Companies from '@/pages/companies';
 import CompanyDetail from '@/pages/company-detail';
 import Respondents from '@/pages/respondents';
 import RespondentDetail from '@/pages/respondent-detail';
+import Reports from '@/pages/reports';
 import Help from '@/pages/help';
 import Settings from '@/pages/settings';
+import Login from '@/pages/login';
+import ForgotPassword from '@/pages/forgot-password';
 import NotFound from '@/pages/not-found';
 
 export const router = createBrowserRouter([
+  { path: '/login', Component: Login },
+  { path: '/forgot-password', Component: ForgotPassword },
   {
     path: '/',
     Component: Layout,
@@ -28,6 +33,7 @@ export const router = createBrowserRouter([
       { path: 'companies/:id', Component: CompanyDetail },
       { path: 'respondents', Component: Respondents },
       { path: 'respondents/:id', Component: RespondentDetail },
+      { path: 'reports', Component: Reports },
       { path: 'billing', Component: Billing },
       { path: 'payouts', Component: Payouts },
       { path: 'help', Component: Help },

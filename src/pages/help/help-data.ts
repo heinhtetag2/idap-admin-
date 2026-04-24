@@ -1,10 +1,10 @@
 export type HelpIconKey =
   | 'rocket'
+  | 'building'
   | 'clipboard'
-  | 'message'
-  | 'credit'
-  | 'settings'
-  | 'shield';
+  | 'users'
+  | 'wallet'
+  | 'settings';
 
 export interface HelpCategoryMeta {
   slug: string;
@@ -17,38 +17,38 @@ export const HELP_CATEGORIES: HelpCategoryMeta[] = [
   {
     slug: 'getting-started',
     title: 'Getting Started',
-    description: 'First survey, workspace setup, and basics.',
+    description: 'Admin console overview, roles, and daily workflow.',
     iconKey: 'rocket',
   },
   {
-    slug: 'creating-surveys',
-    title: 'Creating Surveys',
-    description: 'Question types, logic, targeting, and rewards.',
+    slug: 'company-moderation',
+    title: 'Company Moderation',
+    description: 'Review applications, approve, suspend, and reinstate companies.',
+    iconKey: 'building',
+  },
+  {
+    slug: 'survey-moderation',
+    title: 'Survey Moderation',
+    description: 'Pause, resume, reject, and monitor surveys across the platform.',
     iconKey: 'clipboard',
   },
   {
-    slug: 'responses-quality',
-    title: 'Responses & Quality',
-    description: 'Review responses, quality scores, and export.',
-    iconKey: 'message',
+    slug: 'respondent-management',
+    title: 'Respondent Management',
+    description: 'Trust levels, quality scores, warnings, and suspensions.',
+    iconKey: 'users',
   },
   {
-    slug: 'billing-credits',
-    title: 'Billing & Credits',
-    description: 'Plans, top-ups, invoices, and payment methods.',
-    iconKey: 'credit',
+    slug: 'payouts-compliance',
+    title: 'Payouts & Compliance',
+    description: 'Approve withdrawals, gateways, refunds, and fraud signals.',
+    iconKey: 'wallet',
   },
   {
-    slug: 'account-team',
-    title: 'Account & Team',
-    description: 'Profile, members, permissions, and notifications.',
+    slug: 'platform-operations',
+    title: 'Platform Operations',
+    description: 'Admin roles, exports, audit logs, and system settings.',
     iconKey: 'settings',
-  },
-  {
-    slug: 'privacy-trust',
-    title: 'Privacy & Trust',
-    description: 'Anonymous surveys, data retention, and compliance.',
-    iconKey: 'shield',
   },
 ];
 
@@ -57,40 +57,46 @@ export interface HelpArticleMeta {
   categorySlug: string;
   title: string;
   description: string;
-  readTime: string; // e.g. "4 min"
-  updatedAt: string; // display string
+  readTime: string;
+  updatedAt: string;
 }
 
 export const HELP_ARTICLES: HelpArticleMeta[] = [
   // Getting Started
-  { slug: 'create-first-survey', categorySlug: 'getting-started', title: 'How to create your first survey', description: 'A 10-minute walkthrough from draft to launch.', readTime: '4 min', updatedAt: 'Apr 12, 2026' },
-  { slug: 'workspace-setup', categorySlug: 'getting-started', title: 'Setting up your workspace', description: 'Invite teammates, pick a plan, connect a payment method.', readTime: '3 min', updatedAt: 'Mar 28, 2026' },
-  { slug: 'dashboard-tour', categorySlug: 'getting-started', title: 'A tour of the Dashboard', description: 'Understand every card, chart, and what they mean.', readTime: '5 min', updatedAt: 'Apr 02, 2026' },
-  { slug: 'terminology', categorySlug: 'getting-started', title: 'iDap terminology and concepts', description: 'Credits, responses, quality scores, and trust levels.', readTime: '3 min', updatedAt: 'Mar 22, 2026' },
+  { slug: 'admin-console-tour', categorySlug: 'getting-started', title: 'A tour of the admin console', description: 'Dashboard, sidebar groups, and how the pages fit together.', readTime: '4 min', updatedAt: 'Apr 18, 2026' },
+  { slug: 'platform-dashboard-guide', categorySlug: 'getting-started', title: 'Reading the Platform Dashboard', description: 'What every KPI, chart, and activity event tells you.', readTime: '5 min', updatedAt: 'Apr 15, 2026' },
+  { slug: 'admin-terminology', categorySlug: 'getting-started', title: 'iDap platform terminology', description: 'Companies, respondents, trust levels, quality scores, and payouts.', readTime: '3 min', updatedAt: 'Apr 10, 2026' },
+  { slug: 'daily-admin-workflow', categorySlug: 'getting-started', title: 'A recommended daily admin workflow', description: 'What to check first, what to batch, and when to escalate.', readTime: '4 min', updatedAt: 'Apr 08, 2026' },
 
-  // Creating Surveys
-  { slug: 'reward-and-targeting', categorySlug: 'creating-surveys', title: 'Setting reward amounts and targeting respondents', description: 'Choose rewards that attract quality answers from the right audience.', readTime: '6 min', updatedAt: 'Apr 15, 2026' },
-  { slug: 'question-types', categorySlug: 'creating-surveys', title: 'All available question types', description: 'Single choice, multi-choice, matrix, free text, and more.', readTime: '7 min', updatedAt: 'Apr 10, 2026' },
-  { slug: 'survey-logic', categorySlug: 'creating-surveys', title: 'Branching, skip logic, and quotas', description: 'Build surveys that adapt to each respondent.', readTime: '5 min', updatedAt: 'Apr 08, 2026' },
-  { slug: 'categories-and-tags', categorySlug: 'creating-surveys', title: 'Using categories and tags', description: 'Organize your surveys for faster filtering.', readTime: '2 min', updatedAt: 'Apr 05, 2026' },
+  // Company Moderation
+  { slug: 'review-pending-company', categorySlug: 'company-moderation', title: 'Reviewing a pending company application', description: 'What to verify before approving a new company onto the platform.', readTime: '5 min', updatedAt: 'Apr 20, 2026' },
+  { slug: 'company-approval-criteria', categorySlug: 'company-moderation', title: 'Approval criteria for new companies', description: 'Identity, billing, and intent checks you should clear before approving.', readTime: '4 min', updatedAt: 'Apr 16, 2026' },
+  { slug: 'suspend-company', categorySlug: 'company-moderation', title: 'Suspending a company and its impact', description: 'What happens to active surveys, billing, and team access.', readTime: '3 min', updatedAt: 'Apr 12, 2026' },
+  { slug: 'reinstate-company', categorySlug: 'company-moderation', title: 'Reinstating a suspended company', description: 'Restoring access, surfacing paused surveys, and notifying the team.', readTime: '3 min', updatedAt: 'Apr 05, 2026' },
 
-  // Responses & Quality
-  { slug: 'quality-scores', categorySlug: 'responses-quality', title: 'Understanding response quality scores', description: 'How iDap scores responses and what to do with low scores.', readTime: '5 min', updatedAt: 'Apr 16, 2026' },
-  { slug: 'export-csv', categorySlug: 'responses-quality', title: 'Exporting survey responses as CSV', description: 'Download raw or quality-filtered responses for analysis.', readTime: '2 min', updatedAt: 'Apr 11, 2026' },
-  { slug: 'completion-rate', categorySlug: 'responses-quality', title: 'Improving your completion rate', description: 'Common reasons respondents drop off — and fixes.', readTime: '4 min', updatedAt: 'Apr 03, 2026' },
+  // Survey Moderation
+  { slug: 'survey-statuses', categorySlug: 'survey-moderation', title: 'Understanding survey statuses', description: 'Active, Draft, Paused, Completed, Rejected — and who can change them.', readTime: '3 min', updatedAt: 'Apr 19, 2026' },
+  { slug: 'pause-survey', categorySlug: 'survey-moderation', title: 'Pausing a survey from moderation', description: 'When to pause, how the company is notified, and when responses resume.', readTime: '3 min', updatedAt: 'Apr 14, 2026' },
+  { slug: 'reject-survey', categorySlug: 'survey-moderation', title: 'Rejecting a survey', description: 'Rejection reasons, respondent visibility, and the appeals process.', readTime: '4 min', updatedAt: 'Apr 11, 2026' },
+  { slug: 'trust-requirements', categorySlug: 'survey-moderation', title: 'Setting trust-level requirements for surveys', description: 'How Level 1+ to Level 5+ gating affects respondent eligibility.', readTime: '3 min', updatedAt: 'Apr 07, 2026' },
 
-  // Billing & Credits
-  { slug: 'top-up-credits', categorySlug: 'billing-credits', title: 'Topping up credits and bonus packages', description: 'How packages work and when bonus credits apply.', readTime: '3 min', updatedAt: 'Apr 14, 2026' },
-  { slug: 'invoices', categorySlug: 'billing-credits', title: 'Where to find your invoices', description: 'Download PDFs and view billing history.', readTime: '2 min', updatedAt: 'Apr 09, 2026' },
-  { slug: 'plans-overview', categorySlug: 'billing-credits', title: 'Comparing plans (Starter, Growth, Enterprise)', description: 'Which plan fits your team and budget.', readTime: '4 min', updatedAt: 'Apr 01, 2026' },
+  // Respondent Management
+  { slug: 'trust-levels-explained', categorySlug: 'respondent-management', title: 'Trust levels L1–L5 explained', description: 'How iDap computes trust, and what level unlocks what.', readTime: '5 min', updatedAt: 'Apr 20, 2026' },
+  { slug: 'quality-scores', categorySlug: 'respondent-management', title: 'Quality scores and thresholds', description: 'How scores are calculated and when low quality triggers review.', readTime: '4 min', updatedAt: 'Apr 17, 2026' },
+  { slug: 'warn-vs-suspend', categorySlug: 'respondent-management', title: 'Warning vs. suspending a respondent', description: 'Pick the right escalation step, and what the respondent sees.', readTime: '3 min', updatedAt: 'Apr 13, 2026' },
+  { slug: 'handling-fraud-signals', categorySlug: 'respondent-management', title: 'Handling fraud signals', description: 'Fast completion, straight-lining, and repeated low-quality submissions.', readTime: '5 min', updatedAt: 'Apr 09, 2026' },
 
-  // Account & Team
-  { slug: 'invite-members', categorySlug: 'account-team', title: 'Inviting teammates and setting permissions', description: 'Owner, admin, and viewer roles explained.', readTime: '3 min', updatedAt: 'Apr 13, 2026' },
-  { slug: 'notifications-prefs', categorySlug: 'account-team', title: 'Notification preferences', description: 'Choose what triggers email, in-app, and digest alerts.', readTime: '2 min', updatedAt: 'Apr 07, 2026' },
+  // Payouts & Compliance
+  { slug: 'release-payouts', categorySlug: 'payouts-compliance', title: 'Releasing pending payouts', description: 'Single-row approval, bulk approval, and what to verify first.', readTime: '4 min', updatedAt: 'Apr 21, 2026' },
+  { slug: 'gateway-options', categorySlug: 'payouts-compliance', title: 'Gateway options: QPay, Bonum, Social Pay, Bank Transfer', description: 'Processing times, limits, and when to escalate a transfer.', readTime: '4 min', updatedAt: 'Apr 16, 2026' },
+  { slug: 'failed-payouts', categorySlug: 'payouts-compliance', title: 'Handling failed payouts and retries', description: 'Why payouts fail, retry strategies, and when to refund to balance.', readTime: '4 min', updatedAt: 'Apr 12, 2026' },
+  { slug: 'reject-payout', categorySlug: 'payouts-compliance', title: 'Rejecting a withdrawal request', description: 'Legitimate rejection reasons and how the balance is restored.', readTime: '3 min', updatedAt: 'Apr 06, 2026' },
 
-  // Privacy & Trust
-  { slug: 'anonymous-surveys', categorySlug: 'privacy-trust', title: 'Running anonymous surveys', description: 'When to use anonymity and how iDap enforces it.', readTime: '4 min', updatedAt: 'Apr 06, 2026' },
-  { slug: 'data-retention', categorySlug: 'privacy-trust', title: 'Data retention and deletion', description: 'How long response data lives, and how to purge it.', readTime: '3 min', updatedAt: 'Mar 30, 2026' },
+  // Platform Operations
+  { slug: 'admin-roles', categorySlug: 'platform-operations', title: 'Admin roles and permissions', description: 'Super admin, moderator, and read-only — what each can do.', readTime: '3 min', updatedAt: 'Apr 18, 2026' },
+  { slug: 'export-data', categorySlug: 'platform-operations', title: 'Exporting data as CSV', description: 'Companies, respondents, surveys, and payouts — format and scope.', readTime: '2 min', updatedAt: 'Apr 14, 2026' },
+  { slug: 'audit-logs', categorySlug: 'platform-operations', title: 'Audit logs and the activity feed', description: 'Where admin actions are recorded and how to investigate.', readTime: '4 min', updatedAt: 'Apr 10, 2026' },
+  { slug: 'notification-settings', categorySlug: 'platform-operations', title: 'Notification preferences for admins', description: 'Route moderation alerts to email, in-app, or nowhere.', readTime: '2 min', updatedAt: 'Apr 04, 2026' },
 ];
 
 export function getCategoryBySlug(slug: string | undefined): HelpCategoryMeta | undefined {
@@ -109,9 +115,9 @@ export function getArticlesInCategory(slug: string | undefined): HelpArticleMeta
 }
 
 export const POPULAR_ARTICLE_SLUGS = [
-  'create-first-survey',
-  'reward-and-targeting',
+  'review-pending-company',
+  'release-payouts',
+  'trust-levels-explained',
+  'reject-survey',
   'quality-scores',
-  'top-up-credits',
-  'export-csv',
 ];

@@ -1,6 +1,14 @@
 export type PayoutStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed';
 export type PayoutGateway = 'QPay' | 'Bonum' | 'Social Pay' | 'Bank Transfer';
 
+export type PayoutActionLog = {
+  action: 'Approved' | 'Rejected' | 'Retried';
+  note?: string;
+  actor: string;
+  actorInitial: string;
+  at: string;
+};
+
 export type Payout = {
   id: string;
   respondentId: string;
@@ -12,6 +20,7 @@ export type Payout = {
   account: string;
   requestedAt: string;
   status: PayoutStatus;
+  lastAction?: PayoutActionLog;
 };
 
 export const DEMO_PAYOUTS: Payout[] = [

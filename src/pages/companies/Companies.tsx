@@ -18,11 +18,13 @@ import {
   CheckCircle,
   Tag,
   RotateCcw,
+  ShieldAlert,
 } from 'lucide-react';
 
 import { BrandSelect } from '@/shared/ui/brand-select';
 import type { Company, CompanyPlan, CompanyStatus } from './company-data';
 import { DEMO_COMPANIES } from './company-data';
+import { countOpenReportsByCompanyId } from '@/pages/reports/report-data';
 
 type StatusFilter = 'All' | CompanyStatus;
 type PlanFilter = 'All' | CompanyPlan;
@@ -37,17 +39,17 @@ function getStatusStyles(status: CompanyStatus) {
   switch (status) {
     case 'Pending':
       return {
-        badge: 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]',
+        badge: 'bg-[#FFFBEB] text-[#B45309]',
         Icon: Clock,
       };
     case 'Approved':
       return {
-        badge: 'bg-[#ECFDF5] text-[#047857] border border-[#D1FAE5]',
+        badge: 'bg-[#ECFDF5] text-[#047857]',
         Icon: CheckCircle2,
       };
     case 'Suspended':
       return {
-        badge: 'bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA]',
+        badge: 'bg-[#FEF2F2] text-[#B91C1C]',
         Icon: Ban,
       };
   }
@@ -56,11 +58,11 @@ function getStatusStyles(status: CompanyStatus) {
 function getPlanStyles(plan: CompanyPlan) {
   switch (plan) {
     case 'Enterprise':
-      return 'bg-[#FFF1EE] text-[#C2410C] border border-[#FED7AA]';
+      return 'bg-[#FFF1EE] text-[#C2410C]';
     case 'Growth':
-      return 'bg-[#EFF6FF] text-[#1D4ED8] border border-[#DBEAFE]';
+      return 'bg-[#EFF6FF] text-[#1D4ED8]';
     case 'Starter':
-      return 'bg-[#F4F4F5] text-[#52525B] border border-[#E4E4E7]';
+      return 'bg-[#F3F3F3] text-[#4A4A4A]';
   }
 }
 
@@ -163,13 +165,13 @@ export default function Companies() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-serif text-[#0A0A0A]">{t('Companies')}</h1>
-          <p className="text-sm text-[#71717A] mt-1">
+          <h1 className="text-3xl font-serif text-[#1A1A1A]">{t('Companies')}</h1>
+          <p className="text-sm text-[#8A8A8A] mt-1">
             {counts.All} {t('total')} · {counts.Pending} {t('pending')} · {counts.Approved} {t('approved')}
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-[#E4E4E7] rounded-md text-sm font-medium text-[#0A0A0A] hover:bg-[#F4F4F5] transition-colors bg-white shadow-none cursor-pointer">
+          <button className="flex items-center gap-2 px-4 py-2 border border-[#E3E3E3] rounded-md text-sm font-medium text-[#1A1A1A] hover:bg-[#F3F3F3] transition-colors bg-white shadow-none cursor-pointer">
             <Download className="w-4 h-4" />
             {t('Export CSV')}
           </button>
@@ -211,16 +213,16 @@ export default function Companies() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: i * 0.08 }}
-            className="bg-white border border-[#E4E4E7] rounded-md p-5 flex flex-col justify-center shadow-none hover:border-[#D4D4D8] transition-colors group"
+            className="bg-white border border-[#E3E3E3] rounded-md p-5 flex flex-col justify-center shadow-none hover:border-[#FFDED5] transition-colors group"
           >
             <div className="flex justify-between items-start mb-4">
-              <span className="text-sm font-medium text-[#71717A]">{t(card.title)}</span>
-              <div className="p-2 bg-[#F4F4F5] rounded-md text-[#52525B] group-hover:bg-[#FF3C21] group-hover:text-white transition-colors">
+              <span className="text-sm font-medium text-[#8A8A8A]">{t(card.title)}</span>
+              <div className="p-2 bg-[#F3F3F3] rounded-md text-[#4A4A4A] group-hover:bg-[#FF3C21] group-hover:text-white transition-colors">
                 <card.Icon className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-semibold text-[#0A0A0A]">{card.value}</div>
-            <div className="text-xs text-[#52525B] mt-2">{card.subtitle}</div>
+            <div className="text-2xl font-semibold text-[#1A1A1A]">{card.value}</div>
+            <div className="text-xs text-[#4A4A4A] mt-2">{card.subtitle}</div>
           </motion.div>
         ))}
       </div>
@@ -228,13 +230,13 @@ export default function Companies() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6 items-center flex-wrap">
         <div className="relative flex-1 max-w-sm w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#71717A]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A8A8A]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('Search companies...')}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-[#E4E4E7] rounded-md text-sm focus:outline-none focus:border-[#FF3C21] focus:ring-1 focus:ring-[#FF3C21] placeholder:text-[#71717A]"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-[#E3E3E3] rounded-md text-sm focus:outline-none focus:border-[#FF3C21] focus:ring-1 focus:ring-[#FF3C21] placeholder:text-[#8A8A8A]"
           />
         </div>
 
@@ -268,7 +270,7 @@ export default function Companies() {
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="flex items-center justify-center w-9 h-9 text-[#71717A] hover:text-[#0A0A0A] hover:bg-[#F4F4F5] rounded-full transition-colors border border-transparent hover:border-[#E4E4E7] shadow-none cursor-pointer flex-shrink-0"
+              className="flex items-center justify-center w-9 h-9 text-[#8A8A8A] hover:text-[#1A1A1A] hover:bg-[#F3F3F3] rounded-full transition-colors border border-transparent hover:border-[#E3E3E3] shadow-none cursor-pointer flex-shrink-0"
               title={t('Clear filters')}
             >
               <X className="w-4 h-4" />
@@ -278,38 +280,38 @@ export default function Companies() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-md border border-[#F4F4F5] overflow-hidden shadow-none">
+      <div className="bg-white rounded-md border border-[#F3F3F3] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead>
-              <tr className="border-b border-[#E4E4E7] text-[#52525B] font-medium bg-[#F4F4F5]">
-                <th className="pl-6 pr-3 py-4 font-medium text-[11px] tracking-wider uppercase">
+              <tr className="border-b border-[#E3E3E3] text-[#8A8A8A] font-medium bg-[#F7F7F7]">
+                <th className="pl-6 pr-3 py-4 font-medium text-sm">
                   {t('Company')}
                 </th>
-                <th className="px-6 py-4 font-medium text-[11px] tracking-wider uppercase">
+                <th className="px-6 py-4 font-medium text-sm">
                   {t('Status')}
                 </th>
-                <th className="px-6 py-4 font-medium text-[11px] tracking-wider uppercase">
+                <th className="px-6 py-4 font-medium text-sm">
                   {t('Plan')}
                 </th>
-                <th className="px-6 py-4 font-medium text-[11px] tracking-wider uppercase">
+                <th className="px-6 py-4 font-medium text-sm">
                   {t('Surveys')}
                 </th>
-                <th className="px-6 py-4 font-medium text-[11px] tracking-wider uppercase">
+                <th className="px-6 py-4 font-medium text-sm">
                   {t('Total Spent')}
                 </th>
-                <th className="px-6 py-4 font-medium text-[11px] tracking-wider uppercase">
+                <th className="px-6 py-4 font-medium text-sm">
                   {t('Joined')}
                 </th>
-                <th className="px-6 py-4 font-medium text-[11px] tracking-wider uppercase text-right">
+                <th className="px-6 py-4 font-medium text-sm text-right">
                   {t('Actions')}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F4F4F5]">
+            <tbody className="divide-y divide-[#F3F3F3]">
               {visible.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-[#71717A]">
+                  <td colSpan={7} className="px-6 py-12 text-center text-[#8A8A8A]">
                     {t('No companies match these filters.')}
                   </td>
                 </tr>
@@ -328,14 +330,28 @@ export default function Companies() {
                       {/* Company */}
                       <td className="pl-6 pr-3 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-semibold shrink-0">
+                          <div className="w-9 h-9 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-medium shrink-0">
                             {company.initial}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-medium text-[#0A0A0A] truncate">
-                              {company.name}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="font-medium text-[#1A1A1A] truncate">
+                                {company.name}
+                              </div>
+                              {(() => {
+                                const openReports = countOpenReportsByCompanyId(company.id);
+                                return openReports > 0 ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-[#FEF2F2] text-[#B91C1C] tabular-nums shrink-0"
+                                    title={t('Open reports against this company')}
+                                  >
+                                    <ShieldAlert className="w-3 h-3" />
+                                    {openReports}
+                                  </span>
+                                ) : null;
+                              })()}
                             </div>
-                            <div className="text-xs text-[#71717A] truncate mt-0.5">
+                            <div className="text-xs text-[#8A8A8A] truncate mt-0.5">
                               {company.email}
                             </div>
                           </div>
@@ -345,7 +361,7 @@ export default function Companies() {
                       {/* Status */}
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-medium tracking-wide rounded-full ${statusStyle.badge}`}
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-medium rounded-full ${statusStyle.badge}`}
                         >
                           <statusStyle.Icon className="w-3 h-3" />
                           {t(company.status)}
@@ -355,7 +371,7 @@ export default function Companies() {
                       {/* Plan */}
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium tracking-wide rounded-full ${getPlanStyles(
+                          className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium rounded-full ${getPlanStyles(
                             company.plan,
                           )}`}
                         >
@@ -364,17 +380,17 @@ export default function Companies() {
                       </td>
 
                       {/* Surveys */}
-                      <td className="px-6 py-4 text-[#0A0A0A] tabular-nums font-medium">
+                      <td className="px-6 py-4 text-[#1A1A1A] tabular-nums font-medium">
                         {company.surveys}
                       </td>
 
                       {/* Total spent */}
-                      <td className="px-6 py-4 text-[#0A0A0A] tabular-nums font-semibold">
+                      <td className="px-6 py-4 text-[#1A1A1A] tabular-nums font-medium">
                         {formatMnt(company.totalSpentMnt)}
                       </td>
 
                       {/* Joined */}
-                      <td className="px-6 py-4 text-[#52525B] tabular-nums">
+                      <td className="px-6 py-4 text-[#4A4A4A] tabular-nums">
                         <span title={format(new Date(company.joined), 'MMM d, yyyy')}>
                           {formatDistanceToNow(new Date(company.joined), { addSuffix: true })}
                         </span>
@@ -387,14 +403,14 @@ export default function Companies() {
                             <>
                               <button
                                 onClick={(e) => { e.stopPropagation(); setConfirming({ company, action: 'approve' }); }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-[#ECFDF5] text-[#047857] border border-[#D1FAE5] hover:bg-[#D1FAE5] transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-[#ECFDF5] text-[#047857] hover:bg-[#D1FAE5] transition-colors cursor-pointer"
                               >
                                 <CheckCircle2 className="w-3 h-3" />
                                 {t('Approve')}
                               </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); setConfirming({ company, action: 'reject' }); }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-white text-[#52525B] border border-[#E4E4E7] hover:bg-[#F4F4F5] hover:text-[#0A0A0A] transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-white text-[#4A4A4A] border border-[#E3E3E3] hover:bg-[#F3F3F3] hover:text-[#1A1A1A] transition-colors cursor-pointer"
                               >
                                 <XCircle className="w-3 h-3" />
                                 {t('Reject')}
@@ -404,7 +420,7 @@ export default function Companies() {
                           {company.status === 'Approved' && (
                             <button
                               onClick={(e) => { e.stopPropagation(); setConfirming({ company, action: 'suspend' }); }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA] hover:bg-[#FECACA] transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-[#FEF2F2] text-[#B91C1C] hover:bg-[#FECACA] transition-colors cursor-pointer"
                             >
                               <Ban className="w-3 h-3" />
                               {t('Suspend')}
@@ -413,7 +429,7 @@ export default function Companies() {
                           {company.status === 'Suspended' && (
                             <button
                               onClick={(e) => { e.stopPropagation(); setConfirming({ company, action: 'reinstate' }); }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-[#ECFDF5] text-[#047857] border border-[#D1FAE5] hover:bg-[#D1FAE5] transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-[#ECFDF5] text-[#047857] hover:bg-[#D1FAE5] transition-colors cursor-pointer"
                             >
                               <RotateCcw className="w-3 h-3" />
                               {t('Reinstate')}
@@ -430,21 +446,21 @@ export default function Companies() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#F4F4F5] bg-white">
-          <span className="text-sm text-[#71717A]">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#F3F3F3] bg-white">
+          <span className="text-sm text-[#8A8A8A]">
             {t('Showing')} 1 {t('to')} {visible.length} {t('of')} {counts.All} {t('companies')}
           </span>
           <div className="flex items-center gap-1">
             <button
               disabled
-              className="h-8 px-3 inline-flex items-center text-sm font-normal border border-[#E4E4E7] rounded-md bg-white text-[#71717A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="h-8 px-3 inline-flex items-center text-sm font-normal border border-[#E3E3E3] rounded-md bg-white text-[#8A8A8A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {t('Previous')}
             </button>
             <button className="h-8 min-w-8 px-2 inline-flex items-center justify-center text-sm font-medium border border-[#FF3C21] rounded-md bg-[#FF3C21] text-white tabular-nums cursor-default">
               1
             </button>
-            <button className="h-8 px-3 inline-flex items-center text-sm font-normal border border-[#E4E4E7] rounded-md bg-white text-[#52525B] hover:bg-[#F4F4F5] transition-colors cursor-pointer">
+            <button className="h-8 px-3 inline-flex items-center text-sm font-normal border border-[#E3E3E3] rounded-md bg-white text-[#4A4A4A] hover:bg-[#F3F3F3] transition-colors cursor-pointer">
               {t('Next')}
             </button>
           </div>
@@ -458,7 +474,7 @@ export default function Companies() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#0A0A0A]/30 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-[#1A1A1A]/30 flex items-center justify-center z-50 p-4"
             onClick={() => setConfirming(null)}
           >
             <motion.div
@@ -466,32 +482,32 @@ export default function Companies() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               transition={{ type: 'spring', duration: 0.3 }}
-              className="bg-white rounded-md w-full max-w-sm shadow-none border border-[#F4F4F5] flex flex-col overflow-hidden"
+              className="bg-white rounded-md w-full max-w-sm shadow-none border border-[#F3F3F3] flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-[#F4F4F5] shrink-0">
-                <h2 className="text-lg font-semibold text-[#0A0A0A]">{actionMeta.title}</h2>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3F3F3] shrink-0">
+                <h2 className="text-lg font-medium text-[#1A1A1A]">{actionMeta.title}</h2>
                 <button
                   onClick={() => setConfirming(null)}
-                  className="text-[#71717A] hover:text-[#0A0A0A] hover:bg-[#F4F4F5] rounded-md transition-colors p-1 cursor-pointer"
+                  className="text-[#8A8A8A] hover:text-[#1A1A1A] hover:bg-[#F3F3F3] rounded-md transition-colors p-1 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="p-6 bg-white">
-                <p className="text-[#52525B] text-sm leading-relaxed">
+                <p className="text-[#4A4A4A] text-sm leading-relaxed">
                   {actionMeta.description}
                 </p>
-                <div className="mt-3 p-3 bg-white border border-[#E4E4E7] rounded-md flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-semibold shrink-0">
+                <div className="mt-3 p-3 bg-white border border-[#E3E3E3] rounded-md flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-[#FFF1EE] text-[#FF3C21] flex items-center justify-center text-sm font-medium shrink-0">
                     {confirming.company.initial}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-medium text-[#0A0A0A] text-sm truncate">
+                    <div className="font-medium text-[#1A1A1A] text-sm truncate">
                       {confirming.company.name}
                     </div>
-                    <div className="text-[#71717A] text-xs truncate">
+                    <div className="text-[#8A8A8A] text-xs truncate">
                       {confirming.company.email}
                     </div>
                   </div>
@@ -504,10 +520,10 @@ export default function Companies() {
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#F4F4F5] bg-white shrink-0">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#F3F3F3] bg-white shrink-0">
                 <button
                   onClick={() => setConfirming(null)}
-                  className="px-4 py-2 text-sm font-medium text-[#52525B] bg-white border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] transition-colors shadow-none cursor-pointer"
+                  className="px-4 py-2 text-sm font-medium text-[#4A4A4A] bg-white border border-[#E3E3E3] rounded-md hover:bg-[#F3F3F3] transition-colors shadow-none cursor-pointer"
                 >
                   {t('Cancel')}
                 </button>

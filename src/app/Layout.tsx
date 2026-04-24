@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router';
+import { Navigate, Outlet, useLocation } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sidebar } from '@/widgets/sidebar';
+import { isAuthed } from '@/shared/lib/auth';
 
 export default function Layout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const location = useLocation();
 
+  if (!isAuthed()) {
+    return <Navigate to="/login" replace />;
+  }
+
   return (
-    <div className="flex h-screen w-full bg-white text-[#0A0A0A] font-sans overflow-hidden selection:bg-[#F4F4F5]">
+    <div className="flex h-screen w-full bg-white text-[#1A1A1A] font-sans overflow-hidden selection:bg-[#F3F3F3]">
       {/* Sidebar Navigation */}
       <Sidebar isCollapsed={isSidebarCollapsed} onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
 

@@ -1,19 +1,19 @@
 import type { ElementType } from 'react';
 import {
   Rocket,
+  Building2,
   ClipboardList,
-  MessageSquare,
-  CreditCard,
+  UsersRound,
+  Wallet,
   Settings,
-  ShieldCheck,
 } from 'lucide-react';
 import type { HelpIconKey } from './help-data';
 
 export const HELP_ICONS: Record<HelpIconKey, ElementType> = {
   rocket: Rocket,
+  building: Building2,
   clipboard: ClipboardList,
-  message: MessageSquare,
-  credit: CreditCard,
+  users: UsersRound,
+  wallet: Wallet,
   settings: Settings,
-  shield: ShieldCheck,
 };
