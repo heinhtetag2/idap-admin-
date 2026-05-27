@@ -26,6 +26,7 @@ import {
   ChevronUp,
   ChevronDown,
   Pencil,
+  ListChecks,
 } from 'lucide-react';
 import {
   Drawer,
@@ -39,10 +40,11 @@ import { PLATFORM_FEE, REWARD, WITHDRAWAL, type TrustLevel } from '@/shared/conf
 import { useCategoryStore, byDisplayOrder, type SurveyCategory } from '@/shared/config/categories';
 import { useTrustLevelStore } from '@/shared/config/trust-levels';
 import { useQualityStore } from '@/shared/config/quality-thresholds';
+import { useQuestionTypeStore } from '@/shared/config/question-types';
 import { signOut } from '@/shared/lib/auth';
 import { useNavigate } from 'react-router';
 
-type SectionId = 'account' | 'admins' | 'policies' | 'categories' | 'notifications' | 'region' | 'sessions';
+type SectionId = 'account' | 'admins' | 'policies' | 'categories' | 'question-types' | 'notifications' | 'region' | 'sessions';
 
 interface NavItem {
   id: SectionId;
@@ -61,8 +63,9 @@ const NAVIGATION: NavGroup[] = [
   {
     group: 'Platform',
     items: [
-      { id: 'policies',   label: 'Policies',   icon: ShieldCheck },
-      { id: 'categories', label: 'Categories', icon: Tags },
+      { id: 'policies',       label: 'Policies',       icon: ShieldCheck },
+      { id: 'categories',     label: 'Categories',     icon: Tags },
+      { id: 'question-types', label: 'Question types', icon: ListChecks },
     ],
   },
   {
@@ -80,6 +83,7 @@ const SECTION_META: Record<SectionId, { group: string; title: string; descriptio
   admins:        { group: 'Workspace',          title: 'Admins & Roles',    description: 'Manage team access to the admin console' },
   policies:      { group: 'Platform',           title: 'Policies',          description: 'Fees, rewards, and quality gates for every company and respondent' },
   categories:    { group: 'Platform',           title: 'Survey categories', description: 'The category list companies pick from when creating a survey' },
+  'question-types': { group: 'Platform',         title: 'Question types',    description: 'Which question types companies can use in the survey builder' },
   notifications: { group: 'Preferences',        title: 'Notifications',     description: 'Which moderation events should alert you' },
   region:        { group: 'Preferences',        title: 'Language & region', description: 'Display language, timezone, and date format' },
   sessions:      { group: 'Privacy & Security', title: 'Sessions',          description: 'Devices currently signed in to your admin account' },
@@ -186,6 +190,7 @@ export default function Settings() {
               {activeSection === 'admins'        && <AdminsSection />}
               {activeSection === 'policies'      && <PoliciesSection />}
               {activeSection === 'categories'    && <CategoriesSection />}
+              {activeSection === 'question-types' && <QuestionTypesSection />}
               {activeSection === 'notifications' && <NotificationsSection />}
               {activeSection === 'region'        && <RegionSection />}
               {activeSection === 'sessions'      && <SessionsSection />}
@@ -1302,6 +1307,64 @@ function CategoryEditorDrawer({
 }
 
 /* ──────────────────────────────────────── Shared building blocks ────────────────────────────────────── */
+
+/* ─────────────────────────────────────── Question types ─────────────────────────────────────────────── */
+
+function QuestionTypesSection() {
+  const { t } = useTranslation();
+  const types = useQuestionTypeStore((s) => s.types);
+  const setEnabled = useQuestionTypeStore((s) => s.setEnabled);
+  const resetToDefaults = useQuestionTypeStore((s) => s.resetToDefaults);
+  const sorted = useMemo(() => [...types].sort((a, b) => a.order - b.order), [types]);
+  const enabledCount = types.filter((t) => t.enabled).length;
+
+  return (
+    <>
+      <div className="flex items-start gap-3 p-4 rounded-md bg-[#FFFBEB]">
+        <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" />
+        <div className="text-sm leading-relaxed">
+          <div className="font-medium text-[#1A1A1A]">{t('Platform-wide settings')}</div>
+          <div className="text-[#8A8A8A] mt-0.5">
+            {t('Disabling a type hides it from every company’s survey builder. New types require code — this list only curates the built-in set.')}
+          </div>
+        </div>
+      </div>
+
+      <FormSection
+        title={t('Question types')}
+        subtitle={t('Which question types companies can use when building a survey')}
+        action={
+          <button
+            onClick={resetToDefaults}
+            className="text-sm font-medium text-[#4A4A4A] hover:text-[#1A1A1A] transition-colors cursor-pointer"
+          >
+            {t('Enable all')}
+          </button>
+        }
+      >
+        <div className="divide-y divide-[#E3E3E3]">
+          {sorted.map((qt) => {
+            const lastOn = qt.enabled && enabledCount <= 1;
+            return (
+              <PolicyRow key={qt.key} label={t(qt.label)} description={t(qt.description)}>
+                <Toggle
+                  checked={qt.enabled}
+                  onChange={() => setEnabled(qt.key, !qt.enabled)}
+                  disabled={lastOn}
+                />
+              </PolicyRow>
+            );
+          })}
+        </div>
+      </FormSection>
+
+      <div className="flex items-start gap-2 text-xs text-[#8A8A8A]">
+        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+        {t('At least one type must stay enabled. A question already using a disabled type keeps it until you change it.')}
+      </div>
+    </>
+  );
+}
 
 function FormSection({
   title,

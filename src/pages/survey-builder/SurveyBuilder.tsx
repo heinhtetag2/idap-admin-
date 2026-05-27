@@ -37,6 +37,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { PLATFORM_FEE } from '@/shared/config/business';
 import { useActiveCategories, useCategoryStore } from '@/shared/config/categories';
 import { useTrustLevels } from '@/shared/config/trust-levels';
+import { useEnabledQuestionTypeKeys } from '@/shared/config/question-types';
 import { BrandSelect } from '@/shared/ui/brand-select';
 import type { BuilderQuestion } from '@/shared/lib/mock-questions';
 
@@ -98,6 +99,8 @@ export default function SurveyBuilder() {
   // Survey meta
   const activeCategories = useActiveCategories();
   const trustLevels = useTrustLevels();
+  const enabledTypeKeys = useEnabledQuestionTypeKeys();
+  const defaultQuestionType = (enabledTypeKeys[0] ?? 'single_choice') as QuestionType;
   const [title, setTitle] = useState(prefill?.title ?? '');
   const [description, setDescription] = useState(prefill?.description ?? '');
   const [category, setCategory] = useState<string>(() => {
@@ -147,14 +150,14 @@ export default function SurveyBuilder() {
       }));
     }
     return [
-      { id: makeId(), text: '', type: 'single_choice', options: ['', ''], required: true },
+      { id: makeId(), text: '', type: defaultQuestionType, options: ['', ''], required: true },
     ];
   });
 
   const addQuestion = () => {
     setQuestions((qs) => [
       ...qs,
-      { id: makeId(), text: '', type: 'single_choice', options: ['', ''], required: true },
+      { id: makeId(), text: '', type: defaultQuestionType, options: ['', ''], required: true },
     ]);
   };
 
@@ -572,6 +575,12 @@ function QuestionCard({
 }: QuestionCardProps) {
   const { t } = useTranslation();
   const showOptions = needsOptions(question.type);
+  const enabledTypeKeys = useEnabledQuestionTypeKeys();
+  // Keep the current type visible even if an admin later disables it, so an
+  // already-chosen value never vanishes from the dropdown mid-edit.
+  const typeOptionKeys = enabledTypeKeys.includes(question.type)
+    ? enabledTypeKeys
+    : [question.type, ...enabledTypeKeys];
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: question.id,
@@ -666,7 +675,7 @@ function QuestionCard({
                   options: needsOptions(type) && question.options.length < 2 ? ['', ''] : question.options,
                 });
               }}
-              options={(Object.keys(QUESTION_TYPE_LABEL) as QuestionType[]).map((k) => ({
+              options={typeOptionKeys.map((k) => ({
                 value: k,
                 label: t(QUESTION_TYPE_LABEL[k]),
               }))}
