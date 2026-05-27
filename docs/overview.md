@@ -41,8 +41,8 @@ The console is organised by the sidebar into functional groups. Each maps to a l
 5. **Reports** — abuse triage: respondent-filed complaints against companies (harassment, non-payment, privacy, spam…), resolved by dismiss / warn / suspend.
 6. **Payouts** — money out: review respondent withdrawal requests across gateways (QPay, Bonum, Social Pay, Bank Transfer), approve/reject/retry, individually or in bulk, with an action audit trail.
 7. **Billing** — credits & subscription view (top-up packages, plan, invoices) — largely a company-facing surface surfaced in the admin shell.
-8. **Settings** — platform configuration: fees, reward limits, quality thresholds, trust levels, withdrawal gateways, **survey categories** (the list companies pick from), admin team & roles, notifications, sessions.
-9. **Help** — internal help center: searchable playbooks and articles for the moderation team.
+8. **Settings** — platform configuration: fees, reward limits, quality thresholds, trust levels, withdrawal gateways, **survey categories** (the list companies pick from), **question types** (the allowlist for the builder), admin team & roles, notifications, sessions.
+9. **Help** — internal help center: searchable playbooks and articles for the moderation team, now an **in-app CMS** (admin-managed categories + articles).
 
 ## Cross-cutting concepts
 

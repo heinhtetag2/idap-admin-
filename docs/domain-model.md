@@ -31,7 +31,7 @@ Every response gets a **quality score 0–100**. `qualityBand(score)` maps it to
 | ≥ 20 | `invalidated` | response rejected, no reward |
 | < 20 | `flagged` | flagged for fraud |
 
-These thresholds are also displayed (read-only) in **Settings → Policies → Quality thresholds**.
+These cutoffs are **editable** in **Settings → Policies → Quality thresholds** (persisted via the `quality-thresholds` store, key `idap-quality-thresholds`); the four outcomes themselves are fixed.
 
 ### Reward multiplier
 
@@ -49,7 +49,7 @@ Applied in the [Response Detail Drawer](features/surveys.md#response-detail-draw
 
 ### Trust levels
 
-`TRUST_LEVELS` — five tiers earned by **response volume** and **sustained average quality**. A survey sets a minimum trust level to gate who can take it.
+`TRUST_LEVELS` — five tiers earned by **response volume** and **sustained average quality**. A survey sets a minimum trust level to gate who can take it. Thresholds + labels are **editable** in Settings → Policies → Trust levels (persisted via the `trust-levels` store).
 
 | Level | Label | Min responses | Min avg quality |
 |---|---|---|---|
@@ -169,6 +169,10 @@ interface SurveyCategory { id; name; description?; status: 'active'|'archived'; 
 ```
 
 Seeded with Social, Product, Brand, Market Research, Other. Managed in Settings → Categories; read by the Survey Builder via `useActiveCategories()`.
+
+### Question types — `shared/config/question-types.ts` (Zustand, persisted)
+
+An **enable/disable allowlist** over the builder's built-in question types (Single Choice, Multiple Choice, Short Text, Long Text, Rating). Types are code, so the superadmin curates which are available rather than creating new ones; at least one must stay enabled. Managed in Settings → Question types; the Survey Builder offers only enabled types via `useEnabledQuestionTypeKeys()`.
 
 ### Admin note — `widgets/admin-notes/AdminNotes.tsx`
 

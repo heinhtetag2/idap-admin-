@@ -131,7 +131,7 @@ signOut()   // remove key
 ## State management
 
 - **Server state — TanStack Query.** The provider is mounted and [`createQueryClient()`](../src/shared/lib/query-client.ts) sets sensible defaults (`staleTime: 30s`, `gcTime: 5m`, `retry: 1`, `refetchOnWindowFocus: false`). **No queries/mutations are actually defined yet** — pages read from co-located demo arrays.
-- **Client state — Zustand.** One store: [`useCategoryStore`](../src/shared/config/categories.ts), persisted to `localStorage` under `idap-survey-categories`. It is the single source of truth for survey categories, consumed by both Settings → Categories and the Survey Builder.
+- **Client state — Zustand.** Several persisted stores form the platform-config source of truth, read by Settings and the Survey Builder: [`useCategoryStore`](../src/shared/config/categories.ts) (`idap-survey-categories`), [`useTrustLevelStore`](../src/shared/config/trust-levels.ts) (`idap-trust-levels`), [`useQualityStore`](../src/shared/config/quality-thresholds.ts) (`idap-quality-thresholds`), [`useQuestionTypeStore`](../src/shared/config/question-types.ts) (`idap-question-types`), plus the Help CMS [`useHelpStore`](../src/pages/help/help-store.ts) (`idap-help-content`). All persist to `localStorage`.
 - **Local UI state — `useState`/`useMemo`.** Filters, search, tab selection, drawer/modal open state, optimistic status changes, and demo mutations all live in component state and reset on reload.
 
 ## Mock API (MSW)
