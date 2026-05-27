@@ -13,6 +13,7 @@ import {
   X,
   ChevronRight,
   Clock,
+  Pencil,
 } from 'lucide-react';
 import {
   Drawer,
@@ -21,23 +22,29 @@ import {
   DrawerDescription,
 } from '@/shared/ui/drawer';
 import {
-  HELP_CATEGORIES,
-  HELP_ARTICLES,
-  POPULAR_ARTICLE_SLUGS,
-  getCategoryBySlug,
-  getArticleBySlug,
-  getArticlesInCategory,
-  type HelpArticleMeta,
-} from './help-data';
+  useHelpStore,
+  useHelpCategories,
+  usePublishedArticles,
+  type HelpArticle,
+} from './help-store';
+import HelpManager from './HelpManager';
 import { HELP_ICONS } from './icon-map';
 
 type DrawerView =
   | { kind: 'category'; slug: string }
   | { kind: 'article'; slug: string; backToCategory?: string };
 
-function ArticleBody({ article }: { article: HelpArticleMeta }) {
-  // Generic rich-content rendering — same shape for all articles,
-  // would be swapped for CMS-backed content in production.
+function ArticleBody({ article }: { article: HelpArticle }) {
+  // CMS-backed body when present; otherwise a generic template (unedited seed articles).
+  if (article.body.trim()) {
+    return (
+      <div className="space-y-4 text-sm leading-relaxed text-[#303030]">
+        {article.body.split(/\n{2,}/).map((para, i) => (
+          <p key={i} className="whitespace-pre-wrap">{para}</p>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="space-y-5 text-sm leading-relaxed text-[#303030]">
       <p>
@@ -94,24 +101,35 @@ export default function Help() {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [view, setView] = useState<DrawerView | null>(null);
+  const [manage, setManage] = useState(false);
+
+  const categories = useHelpCategories();
+  const articles = usePublishedArticles();
+  const catTitle = (slug: string) => categories.find((c) => c.slug === slug)?.title ?? '';
 
   const openCategory = (slug: string) => setView({ kind: 'category', slug });
   const openArticle = (slug: string, backToCategory?: string) =>
     setView({ kind: 'article', slug, backToCategory });
   const closeDrawer = () => setView(null);
 
-  const popularArticles = POPULAR_ARTICLE_SLUGS.map((s) => getArticleBySlug(s)).filter(
-    (a): a is HelpArticleMeta => !!a,
-  );
+  const popularArticles = articles.filter((a) => a.popular);
 
   // Global search across titles + descriptions
   const searchResults = query.trim()
-    ? HELP_ARTICLES.filter(
+    ? articles.filter(
         (a) =>
           a.title.toLowerCase().includes(query.toLowerCase()) ||
           a.description.toLowerCase().includes(query.toLowerCase()),
       )
     : null;
+
+  if (manage) {
+    return (
+      <div className="flex-1 overflow-y-auto w-full px-6 md:px-8 xl:px-12 py-8 bg-[#FAFAFA]">
+        <HelpManager onExit={() => setManage(false)} />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -121,11 +139,20 @@ export default function Help() {
       className="flex-1 overflow-y-auto w-full px-6 md:px-8 xl:px-12 py-8 bg-[#FAFAFA]"
     >
       {/* Header */}
-      <div className="mb-8 max-w-3xl">
-        <h1 className="text-3xl font-serif text-[#1A1A1A]">{t('Admin Help Center')}</h1>
-        <p className="text-sm text-[#8A8A8A] mt-1">
-          {t('Moderation playbooks, approval criteria, and policy references for iDap admins.')}
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="max-w-3xl">
+          <h1 className="text-3xl font-serif text-[#1A1A1A]">{t('Admin Help Center')}</h1>
+          <p className="text-sm text-[#8A8A8A] mt-1">
+            {t('Moderation playbooks, approval criteria, and policy references for iDap admins.')}
+          </p>
+        </div>
+        <button
+          onClick={() => setManage(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#1A1A1A] border border-[#E3E3E3] rounded-md hover:bg-[#F3F3F3] transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+        >
+          <Pencil className="w-4 h-4 text-[#8A8A8A]" />
+          {t('Manage content')}
+        </button>
       </div>
 
       {/* Search */}
@@ -177,7 +204,7 @@ export default function Help() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-[#1A1A1A] truncate">{a.title}</div>
                     <div className="text-xs text-[#8A8A8A] mt-0.5 truncate">
-                      {getCategoryBySlug(a.categorySlug)?.title} · {a.readTime} {t('read')}
+                      {catTitle(a.categorySlug)} · {a.readTime} {t('read')}
                     </div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-[#B5B5B5] group-hover:text-[#4A4A4A] transition-colors" />
@@ -201,9 +228,9 @@ export default function Help() {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {HELP_CATEGORIES.map((cat, i) => {
+              {categories.map((cat, i) => {
                 const Icon = HELP_ICONS[cat.iconKey];
-                const count = getArticlesInCategory(cat.slug).length;
+                const count = articles.filter((a) => a.categorySlug === cat.slug).length;
                 return (
                   <motion.button
                     key={cat.slug}
@@ -266,7 +293,7 @@ export default function Help() {
                           {t(article.title)}
                         </div>
                         <div className="text-xs text-[#8A8A8A] mt-0.5">
-                          {getCategoryBySlug(article.categorySlug)?.title} · {article.readTime}{' '}
+                          {catTitle(article.categorySlug)} · {article.readTime}{' '}
                           {t('read')}
                         </div>
                       </div>
@@ -366,10 +393,11 @@ function CategoryPanel({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const category = getCategoryBySlug(slug);
+  const category = useHelpStore((s) => s.categories.find((c) => c.slug === slug));
+  const allArticles = usePublishedArticles();
   if (!category) return null;
   const Icon = HELP_ICONS[category.iconKey];
-  const articles = getArticlesInCategory(slug);
+  const articles = allArticles.filter((a) => a.categorySlug === slug);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -442,12 +470,14 @@ function ArticlePanel({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const article = getArticleBySlug(slug);
+  const articles = usePublishedArticles();
+  const categories = useHelpStore((s) => s.categories);
+  const article = articles.find((a) => a.slug === slug);
+  const category = article ? categories.find((c) => c.slug === article.categorySlug) : undefined;
+  const related = article
+    ? articles.filter((a) => a.categorySlug === article.categorySlug && a.slug !== article.slug).slice(0, 3)
+    : [];
   if (!article) return null;
-  const category = getCategoryBySlug(article.categorySlug);
-  const related = HELP_ARTICLES.filter(
-    (a) => a.categorySlug === article.categorySlug && a.slug !== article.slug,
-  ).slice(0, 3);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

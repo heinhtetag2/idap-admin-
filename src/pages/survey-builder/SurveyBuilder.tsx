@@ -34,7 +34,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { PLATFORM_FEE, TRUST_LEVELS } from '@/shared/config/business';
+import { PLATFORM_FEE } from '@/shared/config/business';
+import { useActiveCategories, useCategoryStore } from '@/shared/config/categories';
+import { useTrustLevels } from '@/shared/config/trust-levels';
 import { BrandSelect } from '@/shared/ui/brand-select';
 import type { BuilderQuestion } from '@/shared/lib/mock-questions';
 
@@ -60,8 +62,6 @@ const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   long_text: 'Long Text',
   rating: 'Rating (1–5)',
 };
-
-const SURVEY_CATEGORIES = ['Social', 'Product', 'Brand', 'Market Research', 'Other'] as const;
 
 function needsOptions(type: QuestionType) {
   return type === 'single_choice' || type === 'multiple_choice';
@@ -96,9 +96,18 @@ export default function SurveyBuilder() {
   const isEditing = Boolean(prefill);
 
   // Survey meta
+  const activeCategories = useActiveCategories();
+  const trustLevels = useTrustLevels();
   const [title, setTitle] = useState(prefill?.title ?? '');
   const [description, setDescription] = useState(prefill?.description ?? '');
-  const [category, setCategory] = useState<string>(prefill?.category ?? 'Market Research');
+  const [category, setCategory] = useState<string>(() => {
+    if (prefill?.category) return prefill.category;
+    const active = useCategoryStore
+      .getState()
+      .categories.filter((c) => c.status === 'active')
+      .sort((a, b) => a.order - b.order);
+    return active[0]?.name ?? '';
+  });
 
   // Reward & limits
   const [reward, setReward] = useState(prefill?.reward ?? 500);
@@ -310,7 +319,7 @@ export default function SurveyBuilder() {
                 <BrandSelect
                   value={category}
                   onValueChange={setCategory}
-                  options={SURVEY_CATEGORIES.map((c) => ({ value: c, label: t(c) }))}
+                  options={activeCategories.map((c) => ({ value: c.name, label: t(c.name) }))}
                 />
               </div>
             </div>
@@ -388,7 +397,7 @@ export default function SurveyBuilder() {
                   <BrandSelect
                     value={String(trustLevel)}
                     onValueChange={(v) => setTrustLevel(Number(v) as 1 | 2 | 3 | 4 | 5)}
-                    options={TRUST_LEVELS.map((lvl) => ({
+                    options={trustLevels.map((lvl) => ({
                       value: String(lvl.level),
                       label: `${t('Level')} ${lvl.level} — ${t(lvl.label)}`,
                     }))}

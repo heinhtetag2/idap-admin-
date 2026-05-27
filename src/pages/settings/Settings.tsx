@@ -22,6 +22,10 @@ import {
   Eye,
   EyeOff,
   LogOut,
+  Tags,
+  ChevronUp,
+  ChevronDown,
+  Pencil,
 } from 'lucide-react';
 import {
   Drawer,
@@ -31,11 +35,14 @@ import {
 } from '@/shared/ui/drawer';
 import { BrandSelect } from '@/shared/ui/brand-select';
 import { cn } from '@/shared/lib/cn';
-import { PLATFORM_FEE, REWARD, WITHDRAWAL, TRUST_LEVELS } from '@/shared/config/business';
+import { PLATFORM_FEE, REWARD, WITHDRAWAL, type TrustLevel } from '@/shared/config/business';
+import { useCategoryStore, byDisplayOrder, type SurveyCategory } from '@/shared/config/categories';
+import { useTrustLevelStore } from '@/shared/config/trust-levels';
+import { useQualityStore } from '@/shared/config/quality-thresholds';
 import { signOut } from '@/shared/lib/auth';
 import { useNavigate } from 'react-router';
 
-type SectionId = 'account' | 'admins' | 'policies' | 'notifications' | 'region' | 'sessions';
+type SectionId = 'account' | 'admins' | 'policies' | 'categories' | 'notifications' | 'region' | 'sessions';
 
 interface NavItem {
   id: SectionId;
@@ -51,7 +58,13 @@ interface NavGroup {
 const NAVIGATION: NavGroup[] = [
   { group: 'Personal',           items: [{ id: 'account',       label: 'Account',           icon: User }] },
   { group: 'Workspace',          items: [{ id: 'admins',        label: 'Admins & Roles',    icon: Users }] },
-  { group: 'Platform',           items: [{ id: 'policies',      label: 'Policies',          icon: ShieldCheck }] },
+  {
+    group: 'Platform',
+    items: [
+      { id: 'policies',   label: 'Policies',   icon: ShieldCheck },
+      { id: 'categories', label: 'Categories', icon: Tags },
+    ],
+  },
   {
     group: 'Preferences',
     items: [
@@ -66,6 +79,7 @@ const SECTION_META: Record<SectionId, { group: string; title: string; descriptio
   account:       { group: 'Personal',           title: 'Account',           description: 'Your profile and how you sign in' },
   admins:        { group: 'Workspace',          title: 'Admins & Roles',    description: 'Manage team access to the admin console' },
   policies:      { group: 'Platform',           title: 'Policies',          description: 'Fees, rewards, and quality gates for every company and respondent' },
+  categories:    { group: 'Platform',           title: 'Survey categories', description: 'The category list companies pick from when creating a survey' },
   notifications: { group: 'Preferences',        title: 'Notifications',     description: 'Which moderation events should alert you' },
   region:        { group: 'Preferences',        title: 'Language & region', description: 'Display language, timezone, and date format' },
   sessions:      { group: 'Privacy & Security', title: 'Sessions',          description: 'Devices currently signed in to your admin account' },
@@ -171,6 +185,7 @@ export default function Settings() {
               {activeSection === 'account'       && <AccountSection />}
               {activeSection === 'admins'        && <AdminsSection />}
               {activeSection === 'policies'      && <PoliciesSection />}
+              {activeSection === 'categories'    && <CategoriesSection />}
               {activeSection === 'notifications' && <NotificationsSection />}
               {activeSection === 'region'        && <RegionSection />}
               {activeSection === 'sessions'      && <SessionsSection />}
@@ -756,12 +771,12 @@ function AdminsSection() {
 
 /* ────────────────────────────────────────────── Policies ────────────────────────────────────────────── */
 
-const QUALITY_BANDS = [
-  { threshold: 80, label: 'Paid instantly',    detail: 'Reward released immediately on submit', tone: 'bg-[#ECFDF5] text-[#047857]' },
-  { threshold: 50, label: 'Held 24 hours',     detail: 'Reward held pending review window',     tone: 'bg-[#FFFBEB] text-[#B45309]' },
-  { threshold: 20, label: 'Invalidated',       detail: 'Reward not paid, response not counted', tone: 'bg-[#FEF2F2] text-[#B91C1C]' },
-  { threshold: 0,  label: 'Flagged for fraud', detail: 'Escalated for admin review',            tone: 'bg-[#FEF2F2] text-[#B91C1C]' },
-];
+const QUALITY_BAND_META = [
+  { key: 'instant', label: 'Paid instantly',    detail: 'Reward released immediately on submit', tone: 'bg-[#ECFDF5] text-[#047857]' },
+  { key: 'hold',    label: 'Held 24 hours',     detail: 'Reward held pending review window',     tone: 'bg-[#FFFBEB] text-[#B45309]' },
+  { key: 'invalid', label: 'Invalidated',       detail: 'Reward not paid, response not counted', tone: 'bg-[#FEF2F2] text-[#B91C1C]' },
+  { key: 'flagged', label: 'Flagged for fraud', detail: 'Escalated for admin review',            tone: 'bg-[#FEF2F2] text-[#B91C1C]' },
+] as const;
 
 const GATEWAY_OPTIONS = [
   { id: 'qpay',   name: 'QPay',          blurb: 'Mongolian mobile wallet',  enabled: true  },
@@ -783,6 +798,44 @@ function PoliciesSection() {
       return acc;
     }, {} as Record<string, boolean>),
   );
+
+  // Trust levels persist to a store (the rest of this section is session-only for now).
+  const storedLevels = useTrustLevelStore((s) => s.levels);
+  const setStoredLevels = useTrustLevelStore((s) => s.setLevels);
+  const resetLevelsToDefaults = useTrustLevelStore((s) => s.resetToDefaults);
+  const [trustDraft, setTrustDraft] = useState<TrustLevel[]>(() => storedLevels.map((l) => ({ ...l })));
+  const trustDirty = useMemo(
+    () => JSON.stringify(trustDraft) !== JSON.stringify(storedLevels),
+    [trustDraft, storedLevels],
+  );
+  const updateLevel = (level: number, patch: Partial<TrustLevel>) =>
+    setTrustDraft((d) => d.map((l) => (l.level === level ? { ...l, ...patch } : l)));
+
+  // Quality thresholds — also store-backed; the four outcomes are fixed.
+  const storedThresholds = useQualityStore((s) => s.thresholds);
+  const setStoredThresholds = useQualityStore((s) => s.setThresholds);
+  const resetQualityToDefaults = useQualityStore((s) => s.resetToDefaults);
+  const [qualityDraft, setQualityDraft] = useState(() => ({ ...storedThresholds }));
+  const qualityDirty = useMemo(
+    () => JSON.stringify(qualityDraft) !== JSON.stringify(storedThresholds),
+    [qualityDraft, storedThresholds],
+  );
+  const qualityValid = qualityDraft.instant > qualityDraft.hold && qualityDraft.hold > qualityDraft.invalid;
+  const updateThreshold = (key: 'instant' | 'hold' | 'invalid', raw: string) =>
+    setQualityDraft((d) => ({ ...d, [key]: Math.min(100, Math.max(0, Number(raw) || 0)) }));
+
+  // The Save / Restore bar commits both store-backed blocks (trust + quality).
+  const policiesDirty = trustDirty || qualityDirty;
+  const handleSavePolicies = () => {
+    setStoredLevels(trustDraft);
+    if (qualityValid) setStoredThresholds(qualityDraft);
+  };
+  const handleRestoreDefaults = () => {
+    resetLevelsToDefaults();
+    resetQualityToDefaults();
+    setTrustDraft(useTrustLevelStore.getState().levels.map((l) => ({ ...l })));
+    setQualityDraft({ ...useQualityStore.getState().thresholds });
+  };
 
   return (
     <>
@@ -845,22 +898,61 @@ function PoliciesSection() {
         </div>
       </FormSection>
 
-      <FormSection title={t('Quality thresholds')} subtitle={t('How scored responses map to reward outcomes')} noPadding>
+      <FormSection
+        title={t('Quality thresholds')}
+        subtitle={t('How scored responses map to reward outcomes')}
+        action={
+          <button
+            onClick={() => setQualityDraft({ ...storedThresholds })}
+            disabled={!qualityDirty}
+            className="text-sm font-medium text-[#4A4A4A] hover:text-[#1A1A1A] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {t('Discard changes')}
+          </button>
+        }
+        noPadding
+      >
         <div className="divide-y divide-[#E3E3E3]">
-          {QUALITY_BANDS.map((band) => (
-            <div key={band.label} className="flex items-center gap-3 px-6 py-4">
-              <div className={cn('px-2 py-0.5 rounded-full text-xs font-medium tabular-nums shrink-0', band.tone)}>
-                {band.threshold === 0 ? `< 20` : `≥ ${band.threshold}`}
+          {QUALITY_BAND_META.map((band) => {
+            const isFlagged = band.key === 'flagged';
+            const k = band.key as 'instant' | 'hold' | 'invalid';
+            return (
+              <div key={band.key} className="flex items-center gap-3 px-6 py-4">
+                {isFlagged ? (
+                  <div className="shrink-0 w-[104px]">
+                    <span className={cn('inline-flex px-2 py-1 rounded-full text-xs font-medium tabular-nums', band.tone)}>
+                      {`< ${qualityDraft.invalid}`}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 shrink-0 w-[104px]">
+                    <span className="text-sm text-[#8A8A8A]">≥</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={qualityDraft[k]}
+                      onChange={(e) => updateThreshold(k, e.target.value)}
+                      className="w-16 tabular-nums"
+                      aria-label={`${t(band.label)} ${t('threshold')}`}
+                    />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-[#1A1A1A]">{t(band.label)}</div>
+                  <div className="text-xs text-[#8A8A8A] mt-0.5">{t(band.detail)}</div>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-[#1A1A1A]">{t(band.label)}</div>
-                <div className="text-xs text-[#8A8A8A] mt-0.5">{t(band.detail)}</div>
-              </div>
+            );
+          })}
+          {!qualityValid && (
+            <div className="px-6 py-3 text-xs text-[#B91C1C] bg-[#FEF2F2]">
+              {t('Thresholds must decrease: paid ≥ held ≥ invalidated. Fix the order to save.')}
             </div>
-          ))}
-          <div className="flex items-start gap-2 px-6 py-4 text-xs text-[#8A8A8A]">
-            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            {t('Thresholds are platform-wide — editing moves existing surveys to the new bands.')}
+          )}
+          <div className="flex items-start gap-2 px-6 py-4 text-xs text-[#B45309] bg-[#FFFBEB]">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            {t('Saving re-bands existing responses and can change whether already-submitted rewards are paid, held, or invalidated. The four outcomes themselves are fixed.')}
           </div>
         </div>
       </FormSection>
@@ -885,11 +977,33 @@ function PoliciesSection() {
         </div>
       </FormSection>
 
-      <FormSection title={t('Trust levels')} subtitle={t('Eligibility gates used by survey publishing')} noPadding>
-        <div className="divide-y divide-[#E3E3E3]">
-          {TRUST_LEVELS.map((lvl) => (
-            <div key={lvl.level} className="flex items-center gap-3 px-6 py-4">
-              <div className="flex gap-1 shrink-0">
+      <FormSection
+        title={t('Trust levels')}
+        subtitle={t('Eligibility gates used by survey publishing')}
+        action={
+          <button
+            onClick={() => setTrustDraft(storedLevels.map((l) => ({ ...l })))}
+            disabled={!trustDirty}
+            className="text-sm font-medium text-[#4A4A4A] hover:text-[#1A1A1A] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {t('Discard changes')}
+          </button>
+        }
+        noPadding
+      >
+        <div className="hidden sm:grid grid-cols-[auto_1fr_120px_120px] gap-4 px-6 pt-5 pb-3 text-xs font-medium text-[#8A8A8A]">
+          <span className="w-[42px]">{t('Tier')}</span>
+          <span>{t('Label')}</span>
+          <span>{t('Min responses')}</span>
+          <span>{t('Min quality')}</span>
+        </div>
+        <div className="divide-y divide-[#E3E3E3] border-t border-[#E3E3E3]">
+          {trustDraft.map((lvl) => (
+            <div
+              key={lvl.level}
+              className="grid grid-cols-[auto_1fr_120px_120px] gap-4 px-6 py-4 items-center"
+            >
+              <div className="flex gap-1 shrink-0 w-[42px]" title={`${t('Level')} ${lvl.level}`}>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <span
                     key={n}
@@ -900,22 +1014,290 @@ function PoliciesSection() {
                   />
                 ))}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-[#1A1A1A]">
-                  {t('Level')} {lvl.level} · {t(lvl.label)}
-                </div>
-                <div className="text-xs text-[#8A8A8A] mt-0.5">
-                  {lvl.minResponses} {t('responses')}
-                  {lvl.minAvgQuality !== null && ` · ${t('quality')} ≥ ${lvl.minAvgQuality}`}
-                </div>
+              <Input
+                value={lvl.label}
+                onChange={(e) => updateLevel(lvl.level, { label: e.target.value })}
+                aria-label={`${t('Level')} ${lvl.level} ${t('Label')}`}
+              />
+              <Input
+                type="number"
+                min={0}
+                value={lvl.minResponses}
+                onChange={(e) =>
+                  updateLevel(lvl.level, { minResponses: Math.max(0, Number(e.target.value) || 0) })
+                }
+                className="tabular-nums"
+                disabled={lvl.level === 1}
+                title={lvl.level === 1 ? t('Everyone starts at Level 1') : undefined}
+              />
+              <div className="relative">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={lvl.minAvgQuality ?? ''}
+                  placeholder={t('None')}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    updateLevel(lvl.level, {
+                      minAvgQuality: v === '' ? null : Math.min(100, Math.max(0, Number(v) || 0)),
+                    });
+                  }}
+                  className="tabular-nums"
+                  disabled={lvl.level === 1}
+                />
               </div>
             </div>
           ))}
+          <div className="flex items-start gap-2 px-6 py-4 text-xs text-[#B45309] bg-[#FFFBEB]">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            {t('Saving re-evaluates every respondent’s level and can change who is eligible for in-flight surveys. The number of levels is fixed at five.')}
+          </div>
         </div>
       </FormSection>
 
-      <SaveBar />
+      <SaveBar
+        onReset={handleRestoreDefaults}
+        resetLabel={t('Restore defaults')}
+        onSave={handleSavePolicies}
+        saveDisabled={!policiesDirty || !qualityValid}
+      />
     </>
+  );
+}
+
+/* ──────────────────────────────────────── Shared building blocks ────────────────────────────────────── */
+
+/* ─────────────────────────────────────────── Categories ─────────────────────────────────────────────── */
+
+function CategoriesSection() {
+  const { t } = useTranslation();
+  const categories = useCategoryStore((s) => s.categories);
+  const addCategory = useCategoryStore((s) => s.addCategory);
+  const updateCategory = useCategoryStore((s) => s.updateCategory);
+  const setStatus = useCategoryStore((s) => s.setStatus);
+  const removeCategory = useCategoryStore((s) => s.removeCategory);
+  const reorder = useCategoryStore((s) => s.reorder);
+
+  const sorted = useMemo(() => [...categories].sort(byDisplayOrder), [categories]);
+  const reorderableIds = useMemo(() => sorted.filter((c) => !c.system).map((c) => c.id), [sorted]);
+  const systemIds = useMemo(() => sorted.filter((c) => c.system).map((c) => c.id), [sorted]);
+  const activeCount = categories.filter((c) => c.status === 'active').length;
+
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<SurveyCategory | null>(null);
+  const [toDelete, setToDelete] = useState<SurveyCategory | null>(null);
+
+  const openAdd = () => {
+    setEditing(null);
+    setEditorOpen(true);
+  };
+  const openEdit = (c: SurveyCategory) => {
+    setEditing(c);
+    setEditorOpen(true);
+  };
+
+  // Only non-system categories reorder; "Other" is always pinned to the bottom.
+  const move = (id: string, dir: -1 | 1) => {
+    const ids = [...reorderableIds];
+    const i = ids.indexOf(id);
+    const j = i + dir;
+    if (i === -1 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    reorder([...ids, ...systemIds]);
+  };
+
+  return (
+    <>
+      <div className="flex items-start gap-3 p-4 rounded-md bg-[#FFFBEB]">
+        <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" />
+        <div className="text-sm leading-relaxed">
+          <div className="font-medium text-[#1A1A1A]">{t('Platform-wide settings')}</div>
+          <div className="text-[#8A8A8A] mt-0.5">
+            {t('Active categories appear in every company’s survey builder. Only Super admins can edit.')}
+          </div>
+        </div>
+      </div>
+
+      <FormSection
+        title={t('Categories')}
+        subtitle={`${activeCount} ${t('active')} · ${categories.length} ${t('total')}`}
+        action={
+          <button
+            onClick={openAdd}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-[#FF3C21] rounded-md hover:bg-[#E63419] transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            {t('Add category')}
+          </button>
+        }
+        noPadding
+      >
+        <div className="divide-y divide-[#E3E3E3]">
+          {sorted.map((c) => {
+            const ri = reorderableIds.indexOf(c.id);
+            const upDisabled = c.system || ri <= 0;
+            const downDisabled = c.system || ri === reorderableIds.length - 1;
+            return (
+            <div key={c.id} className="flex items-center gap-3 px-6 py-4">
+              <div className="flex flex-col shrink-0">
+                <button
+                  onClick={() => move(c.id, -1)}
+                  disabled={upDisabled}
+                  className="p-0.5 text-[#8A8A8A] hover:text-[#1A1A1A] rounded transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                  aria-label={t('Move up')}
+                >
+                  <ChevronUp className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => move(c.id, 1)}
+                  disabled={downDisabled}
+                  className="p-0.5 text-[#8A8A8A] hover:text-[#1A1A1A] rounded transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                  aria-label={t('Move down')}
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium text-[#1A1A1A]">{c.name}</span>
+                  {c.system && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#F3F3F3] text-[#8A8A8A] text-xs font-medium">
+                      {t('Default')}
+                    </span>
+                  )}
+                  {c.status === 'archived' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#F3F3F3] text-[#8A8A8A] text-xs font-medium">
+                      {t('Archived')}
+                    </span>
+                  )}
+                </div>
+                {c.description && (
+                  <div className="text-xs text-[#8A8A8A] mt-0.5 truncate">{c.description}</div>
+                )}
+              </div>
+
+              <div className="shrink-0 flex items-center gap-2">
+                <span className="hidden sm:block text-xs text-[#8A8A8A] w-12 text-right">
+                  {c.status === 'active' ? t('Active') : t('Hidden')}
+                </span>
+                <Toggle
+                  checked={c.status === 'active'}
+                  onChange={() => setStatus(c.id, c.status === 'active' ? 'archived' : 'active')}
+                />
+              </div>
+
+              <button
+                onClick={() => openEdit(c)}
+                className="p-1.5 text-[#8A8A8A] hover:text-[#1A1A1A] hover:bg-[#F3F3F3] rounded-md transition-colors cursor-pointer shrink-0"
+                aria-label={t('Edit')}
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => setToDelete(c)}
+                disabled={c.system}
+                title={c.system ? t('The default category can’t be deleted') : undefined}
+                className="p-1.5 text-[#8A8A8A] hover:text-[#B91C1C] hover:bg-[#FEF2F2] rounded-md transition-colors cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-[#8A8A8A] disabled:hover:bg-transparent"
+                aria-label={t('Delete')}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            );
+          })}
+
+          <div className="flex items-start gap-2 px-6 py-4 text-xs text-[#8A8A8A]">
+            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            {t('Archiving hides a category from new surveys but keeps it on existing ones. Deleting is permanent. The default “Other” category always stays last and can’t be removed.')}
+          </div>
+        </div>
+      </FormSection>
+
+      <CategoryEditorDrawer
+        key={editing?.id ?? 'new'}
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        category={editing}
+        onSubmit={(values) => {
+          if (editing) updateCategory(editing.id, values);
+          else addCategory(values);
+          setEditorOpen(false);
+        }}
+      />
+
+      <SettingsConfirmModal
+        open={Boolean(toDelete)}
+        onOpenChange={(o) => !o && setToDelete(null)}
+        title={t('Delete category?')}
+        description={t('This permanently removes the category. Surveys already using it keep their saved value. Consider archiving instead.')}
+        confirmLabel={t('Delete')}
+        onConfirm={() => {
+          if (toDelete) removeCategory(toDelete.id);
+          setToDelete(null);
+        }}
+      >
+        {toDelete && (
+          <div className="mt-4 p-3 bg-[#FAFAFA] border border-[#E3E3E3] rounded-md">
+            <div className="text-sm font-medium text-[#1A1A1A]">{toDelete.name}</div>
+            {toDelete.description && (
+              <div className="text-xs text-[#8A8A8A] mt-0.5">{toDelete.description}</div>
+            )}
+          </div>
+        )}
+      </SettingsConfirmModal>
+    </>
+  );
+}
+
+function CategoryEditorDrawer({
+  open,
+  onOpenChange,
+  category,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  category: SurveyCategory | null;
+  onSubmit: (values: { name: string; description?: string }) => void;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState(category?.name ?? '');
+  const [description, setDescription] = useState(category?.description ?? '');
+
+  const canSubmit = name.trim().length > 0;
+
+  return (
+    <SettingsDrawer
+      open={open}
+      onOpenChange={onOpenChange}
+      title={category ? t('Edit category') : t('Add category')}
+      description={
+        category
+          ? t('Changes apply across every company’s survey builder.')
+          : t('New categories become available to all companies immediately.')
+      }
+      primaryLabel={category ? t('Save changes') : t('Add category')}
+      onPrimary={() => onSubmit({ name, description })}
+      primaryDisabled={!canSubmit}
+    >
+      <div className="space-y-6">
+        <Field label={t('Name')}>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Healthcare')} />
+        </Field>
+        <Field label={t('Description')} description={t('Optional — a short hint shown to admins.')}>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t('What kinds of surveys belong here?')}
+            rows={3}
+            className="w-full px-3 py-2 bg-white border border-[#E3E3E3] rounded-md text-sm text-[#1A1A1A] placeholder:text-[#8A8A8A] focus:outline-none focus:border-[#FF3C21] focus:ring-1 focus:ring-[#FF3C21] transition-colors resize-none"
+          />
+        </Field>
+      </div>
+    </SettingsDrawer>
   );
 }
 
@@ -1052,14 +1434,31 @@ function Toggle({
   );
 }
 
-function SaveBar() {
+function SaveBar({
+  onSave,
+  onReset,
+  resetLabel,
+  saveDisabled,
+}: {
+  onSave?: () => void;
+  onReset?: () => void;
+  resetLabel?: string;
+  saveDisabled?: boolean;
+} = {}) {
   const { t } = useTranslation();
   return (
     <div className="flex items-center justify-end gap-2 pt-2">
-      <button className="px-4 py-2 text-sm font-medium text-[#4A4A4A] hover:bg-[#F3F3F3] rounded-md transition-colors cursor-pointer">
-        {t('Reset')}
+      <button
+        onClick={onReset}
+        className="px-4 py-2 text-sm font-medium text-[#4A4A4A] hover:bg-[#F3F3F3] rounded-md transition-colors cursor-pointer"
+      >
+        {resetLabel ?? t('Reset')}
       </button>
-      <button className="px-4 py-2 text-sm font-medium text-white bg-[#FF3C21] rounded-md hover:bg-[#E63419] transition-colors cursor-pointer">
+      <button
+        onClick={onSave}
+        disabled={saveDisabled}
+        className="px-4 py-2 text-sm font-medium text-white bg-[#FF3C21] rounded-md hover:bg-[#E63419] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
         {t('Save changes')}
       </button>
     </div>
